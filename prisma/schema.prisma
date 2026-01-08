@@ -1,0 +1,305 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id                String             @id @default(cuid())
+  email             String             @unique
+  name              String?
+  image             String?
+  profileImage      String?
+  password          String?
+  userType          UserType           @default(CLIENT)
+  balance           Float              @default(0)
+  isVerified        Boolean            @default(false)
+  sellerStatus      SellerStatus       @default(NOT_APPLIED)
+  nationalId        String?
+  kraPinNumber      String?
+  phoneNumber       String?
+  county            String?
+  bio               String?
+  createdAt         DateTime           @default(now())
+  updatedAt         DateTime           @updatedAt
+  gigs              Gig[]
+  messages          Message[]
+  orders            Order[]
+  projects          Project[]
+  proposals         Proposal[]
+  reviews           Review[]
+  sellerApplication SellerApplication?
+  buyerTransactions EscrowTransaction[] @relation("BuyerTransactions")
+  sellerTransactions EscrowTransaction[] @relation("SellerTransactions")
+
+  @@map("users")
+}
+
+model SellerApplication {
+  id           String            @id @default(cuid())
+  businessName String
+  description  String
+  skills       String[]
+  experience   String
+  portfolio    String[]
+  idDocument   String?
+  status       ApplicationStatus @default(PENDING)
+  adminNotes   String?
+  createdAt    DateTime          @default(now())
+  updatedAt    DateTime          @updatedAt
+  userId       String            @unique
+  user         User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("seller_applications")
+}
+
+model Project {
+  id          String      @id @default(cuid())
+  title       String
+  description String
+  budget      Float
+  currency    String      @default("KES")
+  type        ProjectType @default(FIXED)
+  category    String
+  skills      String[]
+  timeline    Int
+  location    String?
+  isActive    Boolean     @default(true)
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+  clientId    String
+  client      User        @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  proposals   Proposal[]
+
+  @@map("projects")
+}
+
+model Gig {
+  id           String    @id @default(cuid())
+  title        String
+  description  String
+  price        Float
+  deliveryTime Int
+  category     String
+  subcategory  String?
+  tags         String[]
+  images       String[]
+  isActive     Boolean   @default(true)
+  rating       Float     @default(0)
+  reviewCount  Int       @default(0)
+  orderCount   Int       @default(0)
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+  sellerId     String
+  seller       User      @relation(fields: [sellerId], references: [id], onDelete: Cascade)
+  orders       Order[]
+  packages     Package[]
+  reviews      Review[]
+
+  @@map("gigs")
+}
+
+model Package {
+  id           String   @id @default(cuid())
+  name         String
+  description  String
+  price        Float
+  deliveryTime Int
+  features     String[]
+  gigId        String
+  orders       Order[]
+  gig          Gig      @relation(fields: [gigId], references: [id], onDelete: Cascade)
+
+  @@map("packages")
+}
+
+model Order {
+  id           String      @id @default(cuid())
+  status       OrderStatus @default(PENDING)
+  totalAmount  Float
+  deliveryDate DateTime?
+  requirements String?
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @updatedAt
+  buyerId      String
+  gigId        String
+  packageId    String?
+  messages     Message[]
+  buyer        User        @relation(fields: [buyerId], references: [id])
+  gig          Gig         @relation(fields: [gigId], references: [id])
+  package      Package?    @relation(fields: [packageId], references: [id])
+  review       Review?
+
+  @@map("orders")
+}
+
+model Review {
+  id         String   @id @default(cuid())
+  rating     Int
+  comment    String?
+  createdAt  DateTime @default(now())
+  reviewerId String
+  gigId      String
+  orderId    String   @unique
+  gig        Gig      @relation(fields: [gigId], references: [id], onDelete: Cascade)
+  order      Order    @relation(fields: [orderId], references: [id])
+  reviewer   User     @relation(fields: [reviewerId], references: [id])
+
+  @@map("reviews")
+}
+
+model Message {
+  id          String   @id @default(cuid())
+  content     String
+  attachments String[]
+  isRead      Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  senderId    String
+  orderId     String
+  order       Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  sender      User     @relation(fields: [senderId], references: [id])
+
+  @@map("messages")
+}
+
+model Proposal {
+  id           String         @id @default(cuid())
+  title        String
+  description  String
+  budget       Float
+  currency     String         @default("KES")
+  timeline     Int
+  status       ProposalStatus @default(PENDING)
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime       @updatedAt
+  freelancerId String
+  projectId    String?
+  freelancer   User           @relation(fields: [freelancerId], references: [id])
+  project      Project?       @relation(fields: [projectId], references: [id])
+
+  @@map("proposals")
+}
+
+model EscrowTransaction {
+  id          String            @id @default(cuid())
+  amount      Float
+  status      EscrowStatus      @default(PENDING)
+  buyerId     String
+  sellerId    String?
+  productId   String
+  adminNotes  String?
+  createdAt   DateTime          @default(now())
+  updatedAt   DateTime          @updatedAt
+  buyer       User              @relation("BuyerTransactions", fields: [buyerId], references: [id])
+  seller      User?             @relation("SellerTransactions", fields: [sellerId], references: [id])
+  product     Product           @relation(fields: [productId], references: [id])
+  items       EscrowItem[]
+
+  @@map("escrow_transactions")
+}
+
+model EscrowItem {
+  id            String            @id @default(cuid())
+  quantity      Int
+  price         Float
+  productId     String
+  transactionId String
+  product       Product           @relation(fields: [productId], references: [id])
+  transaction   EscrowTransaction @relation(fields: [transactionId], references: [id], onDelete: Cascade)
+
+  @@map("escrow_items")
+}
+
+model Product {
+  id               String              @id @default(cuid())
+  title            String
+  description      String
+  price            Float
+  images           String[]
+  category         String
+  stock            Int                 @default(0)
+  isActive         Boolean             @default(true)
+  rating           Float               @default(0)
+  reviewCount      Int                 @default(0)
+  orderCount       Int                 @default(0)
+  createdAt        DateTime            @default(now())
+  updatedAt        DateTime            @updatedAt
+  escrowItems      EscrowItem[]
+  escrowTransactions EscrowTransaction[]
+
+  @@map("products")
+}
+
+model Category {
+  id          String   @id @default(cuid())
+  name        String   @unique
+  description String?
+  icon        String?
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+
+  @@map("categories")
+}
+
+model ThemeSettings {
+  id             String   @id @default(cuid())
+  primaryColor   String   @default("#3b82f6")
+  secondaryColor String   @default("#10b981")
+  accentColor    String   @default("#8b5cf6")
+  isActive       Boolean  @default(true)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@map("theme_settings")
+}
+
+enum EscrowStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  COMPLETED
+  REFUNDED
+}
+
+enum SellerStatus {
+  NOT_APPLIED
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+enum ApplicationStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+enum ProjectType {
+  FIXED
+  HOURLY
+}
+
+enum UserType {
+  CLIENT
+  FREELANCER
+  AGENCY
+  ADMIN
+}
+
+enum OrderStatus {
+  PENDING
+  IN_PROGRESS
+  DELIVERED
+  COMPLETED
+  CANCELLED
+  DISPUTED
+}
+
+enum ProposalStatus {
+  PENDING
+  ACCEPTED
+  REJECTED
+}

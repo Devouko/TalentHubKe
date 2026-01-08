@@ -1,0 +1,51 @@
+/* Tailwind-compatible color system */
+:root {
+  /* Tailwind color variables (HSL format) */
+  --background: 0 0% 0%; /* Black */
+  --foreground: 0 0% 100%; /* White */
+  --primary: 0 0% 0%; /* Black */
+  --primary-foreground: 0 0% 100%; /* White */
+  --secondary: 123 100% 50%; /* Bright Green #00ff41 */
+  --secondary-foreground: 0 0% 0%; /* Black */
+  --accent: 84 100% 50%; /* Neon Yellow-Green #7fff00 */
+  --accent-foreground: 0 0% 0%; /* Black */
+  --muted: 0 0% 10%; /* Dark Gray */
+  --muted-foreground: 0 0% 69%; /* Light Gray */
+  --card: 0 0% 10%; /* Dark Gray */
+  --card-foreground: 0 0% 100%; /* White */
+  --popover: 0 0% 10%; /* Dark Gray */
+  --popover-foreground: 0 0% 100%; /* White */
+  --border: 0 0% 20%; /* Border Gray */
+  --input: 0 0% 20%; /* Input Gray */
+  --ring: 123 100% 50%; /* Green ring */
+  --radius: 0.5rem;
+  
+  /* Custom properties for backward compatibility */
+  --primary-color: #000000;
+  --secondary-color: #00ff41;
+  --accent-color: #7fff00;
+  --neutral-color: #1a1a1a;
+  --text-primary: #ffffff;
+  --text-secondary: #b0b0b0;
+  --text-muted: #808080;
+  --success: #00ff41;
+  --error: #ff4757;
+  --warning: #ffa502;
+  --info: #7fff00;
+}
+
+/* Glassmorphism Classes */
+.glass {
+  background: rgba(26, 26, 26, 0.25);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.glass-card {
+  background: rgba(26, 26, 26, 0.4);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(0, 255, 65, 0.2);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+}

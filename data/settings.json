@@ -1,0 +1,28 @@
+{
+  "siteName": "TalentHub Marketplace",
+  "siteDescription": "Connect with talented professionals",
+  "contactEmail": "contact@talenthub.com",
+  "supportEmail": "support@talenthub.com",
+  "maintenanceMode": false,
+  "registrationEnabled": true,
+  "emailVerificationRequired": true,
+  "defaultCurrency": "USD",
+  "commissionRate": 5,
+  "escrowEnabled": true,
+  "maxFileSize": 10,
+  "allowedFileTypes": [
+    "jpg",
+    "jpeg",
+    "png",
+    "pdf",
+    "doc",
+    "docx"
+  ],
+  "smtpHost": "",
+  "smtpPort": "587",
+  "smtpUser": "",
+  "smtpPassword": "",
+  "notificationsEnabled": true,
+  "backupEnabled": true,
+  "backupFrequency": "daily"
+}
