@@ -170,7 +170,7 @@ export default function ProductsPage() {
     return matchesSearch && matchesCategory
   })
 
-  const categories = ['ALL', 'electronics', 'fashion', 'home', 'books', 'sports']
+  const categories = ['ALL', 'Accounts', 'Digital-products', 'Proxies', 'Bulk_Gmails', 'KYC']
 
   if (status === 'loading' || loading) {
     return <div className="p-6">Loading products...</div>

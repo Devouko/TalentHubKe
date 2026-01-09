@@ -27,7 +27,7 @@ export default function DashboardContent() {
   const [createGigForm, setCreateGigForm] = useState({
     title: '',
     description: '',
-    category: 'design',
+    category: 'Accounts',
     price: '',
     deliveryTime: '3',
     tags: '',
@@ -43,7 +43,7 @@ export default function DashboardContent() {
     experience: '',
     portfolio: '',
     description: '',
-    category: 'design'
+    category: 'Accounts'
   })
   const [applySellerLoading, setApplySellerLoading] = useState(false)
   const [conversations, setConversations] = useState([])
@@ -101,7 +101,7 @@ export default function DashboardContent() {
         setCreateGigForm({
           title: '',
           description: '',
-          category: 'design',
+          category: 'Accounts',
           price: '',
           deliveryTime: '3',
           tags: '',
@@ -150,7 +150,7 @@ export default function DashboardContent() {
           experience: '',
           portfolio: '',
           description: '',
-          category: 'design'
+          category: 'Accounts'
         })
       } else {
         setAlert({ type: 'error', message: 'Failed to submit application.' })
@@ -182,7 +182,7 @@ export default function DashboardContent() {
     signOut({ callbackUrl: '/auth' })
   }
 
-  const categories = ['all', 'electronics', 'fashion', 'home', 'books', 'sports']
+  const categories = ['all', 'Accounts', 'Digital-products', 'Proxies', 'Bulk_Gmails', 'KYC']
   
   const filteredProducts = products.filter(product => {
     const matchesSearch = product.title?.toLowerCase().includes(searchTerm.toLowerCase())
@@ -234,7 +234,7 @@ export default function DashboardContent() {
   )
 
   const renderBrowseGigs = () => {
-    const categories = ['all', 'design', 'development', 'writing', 'marketing', 'video']
+    const categories = ['all', 'Accounts', 'Digital-products', 'Proxies', 'Bulk_Gmails', 'KYC']
     const filteredGigs = gigs.filter(gig => {
       const matchesSearch = gig.title?.toLowerCase().includes(gigSearchTerm.toLowerCase())
       const matchesCategory = gigCategory === 'all' || gig.category?.toLowerCase() === gigCategory
@@ -418,7 +418,7 @@ export default function DashboardContent() {
   }
 
   const renderApplySeller = () => {
-    const categories = ['design', 'development', 'writing', 'marketing', 'video', 'other']
+    const categories = ['Accounts', 'Digital-products', 'Proxies', 'Bulk_Gmails', 'KYC', 'other']
 
     return (
       <div className="space-y-6">
@@ -538,7 +538,7 @@ export default function DashboardContent() {
   }
 
   const renderCreateGig = () => {
-    const categories = ['design', 'development', 'writing', 'marketing', 'video', 'other']
+    const categories = ['Accounts', 'Digital-products', 'Proxies', 'Bulk_Gmails', 'KYC', 'other']
     const deliveryOptions = [
       { value: '1', label: '1 day' },
       { value: '3', label: '3 days' },
@@ -787,17 +787,6 @@ export default function DashboardContent() {
       </div>
     )
   }
-
-  const renderSellerDashboard = () => (
-    <div className="space-y-6">
-      <h2 className="text-2xl font-bold">Seller Dashboard</h2>
-      <div className="text-center py-12">
-        <Briefcase className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-        <h3 className="text-xl font-semibold text-gray-300 mb-2">Seller Dashboard</h3>
-        <p className="text-gray-400">Manage your gigs and orders</p>
-      </div>
-    </div>
-  )
 
   const renderReviews = () => (
     <div className="space-y-6">

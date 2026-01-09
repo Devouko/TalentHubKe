@@ -10,14 +10,14 @@ export default function ApplyToSeller() {
   const [loading, setLoading] = useState(false)
   const [alert, setAlert] = useState<{ type: 'success' | 'error', message: string } | null>(null)
   const [formData, setFormData] = useState({
+    businessName: '',
     skills: '',
     experience: '',
     portfolio: '',
-    description: '',
-    category: 'design'
+    description: ''
   })
 
-  const categories = ['design', 'development', 'writing', 'marketing', 'video', 'other']
+
 
   const handleSubmit = async (e) => {
     e.preventDefault()
@@ -29,18 +29,22 @@ export default function ApplyToSeller() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           userId: session?.user?.id,
-          ...formData
+          businessName: formData.businessName || 'Not specified',
+          skills: formData.skills ? formData.skills.split(',').map(s => s.trim()).filter(s => s) : [],
+          experience: formData.experience || 'Not specified',
+          portfolio: formData.portfolio ? [formData.portfolio] : [],
+          description: formData.description || 'Not specified'
         })
       })
 
       if (response.ok) {
         setAlert({ type: 'success', message: 'Seller application submitted successfully! Admin will review your application.' })
         setFormData({
+          businessName: '',
           skills: '',
           experience: '',
           portfolio: '',
-          description: '',
-          category: 'design'
+          description: ''
         })
       } else {
         setAlert({ type: 'error', message: 'Failed to submit application. Please try again.' })
@@ -108,64 +112,55 @@ export default function ApplyToSeller() {
               
               <form onSubmit={handleSubmit} className="space-y-6">
                 <div>
-                  <label className="block text-sm font-medium text-gray-300 mb-2">Category</label>
-                  <select
-                    value={formData.category}
-                    onChange={(e) => setFormData({...formData, category: e.target.value})}
-                    className="w-full p-3 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-purple-500"
-                    required
-                  >
-                    {categories.map(category => (
-                      <option key={category} value={category}>
-                        {category.charAt(0).toUpperCase() + category.slice(1)}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-300 mb-2">Skills</label>
+                  <label className="block text-sm font-medium text-gray-300 mb-2">Business Name (Optional)</label>
                   <input
                     type="text"
-                    placeholder="e.g., Graphic Design, Logo Design, Branding"
-                    value={formData.skills}
-                    onChange={(e) => setFormData({...formData, skills: e.target.value})}
+                    placeholder="Your business or professional name"
+                    value={formData.businessName}
+                    onChange={(e) => setFormData({...formData, businessName: e.target.value})}
                     className="w-full p-3 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-purple-500"
-                    required
                   />
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-300 mb-2">Experience</label>
+                  <label className="block text-sm font-medium text-gray-300 mb-2">Skills (Optional)</label>
+                  <input
+                    type="text"
+                    placeholder="e.g., Graphic Design, Logo Design, Branding (separate with commas)"
+                    value={formData.skills}
+                    onChange={(e) => setFormData({...formData, skills: e.target.value})}
+                    className="w-full p-3 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-purple-500"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-300 mb-2">Experience (Optional)</label>
                   <textarea
                     placeholder="Describe your professional experience..."
                     value={formData.experience}
                     onChange={(e) => setFormData({...formData, experience: e.target.value})}
                     className="w-full p-3 bg-gray-700 border border-gray-600 rounded-lg text-white h-24 focus:outline-none focus:ring-2 focus:ring-purple-500"
-                    required
                   />
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-300 mb-2">Portfolio URL</label>
+                  <label className="block text-sm font-medium text-gray-300 mb-2">Portfolio URL (Optional)</label>
                   <input
                     type="url"
                     placeholder="https://your-portfolio.com"
                     value={formData.portfolio}
                     onChange={(e) => setFormData({...formData, portfolio: e.target.value})}
                     className="w-full p-3 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-purple-500"
-                    required
                   />
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-300 mb-2">Description</label>
+                  <label className="block text-sm font-medium text-gray-300 mb-2">Description (Optional)</label>
                   <textarea
                     placeholder="Tell us about yourself and why you want to become a seller..."
                     value={formData.description}
                     onChange={(e) => setFormData({...formData, description: e.target.value})}
                     className="w-full p-3 bg-gray-700 border border-gray-600 rounded-lg text-white h-32 focus:outline-none focus:ring-2 focus:ring-purple-500"
-                    required
                   />
                 </div>
 

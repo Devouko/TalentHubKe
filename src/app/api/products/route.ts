@@ -1,10 +1,12 @@
-import { NextResponse } from 'next/server'
-import { prisma } from '@/lib/prisma'
+import { NextRequest, NextResponse } from 'next/server'
+import { PrismaClient } from '@prisma/client'
+import { getServerSession } from 'next-auth'
+
+const prisma = new PrismaClient()
 
 export async function GET() {
   try {
     const products = await prisma.product.findMany({
-      where: { isActive: true },
       orderBy: { createdAt: 'desc' }
     })
     return NextResponse.json(products)
@@ -13,19 +15,25 @@ export async function GET() {
   }
 }
 
-export async function POST(request: Request) {
+export async function POST(request: NextRequest) {
   try {
+    const session = await getServerSession()
+    if (!session) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
     const body = await request.json()
-    const { title, description, price, images, category, stock } = body
+    const { title, description, category, price, stock, images, sellerId } = body
 
     const product = await prisma.product.create({
       data: {
         title,
         description,
-        price: parseFloat(price),
-        images: images || [],
         category,
-        stock: parseInt(stock) || 0
+        price: parseFloat(price),
+        stock: parseInt(stock),
+        images: images || [],
+        sellerId
       }
     })
 
@@ -35,8 +43,13 @@ export async function POST(request: Request) {
   }
 }
 
-export async function DELETE(request: Request) {
+export async function DELETE(request: NextRequest) {
   try {
+    const session = await getServerSession()
+    if (!session || session.user?.userType !== 'ADMIN') {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
     const { searchParams } = new URL(request.url)
     const id = searchParams.get('id')
 
