@@ -56,6 +56,13 @@ export default function DashboardContent() {
     fetchProducts()
   }, [])
 
+  // Refresh products when switching to home tab
+  useEffect(() => {
+    if (activeTab === 'home') {
+      fetchProducts()
+    }
+  }, [activeTab])
+
   const fetchProducts = async () => {
     try {
       const response = await fetch('/api/products')
@@ -68,15 +75,23 @@ export default function DashboardContent() {
     }
   }
 
+  /**
+   * Fetches gigs from the API
+   * Uses proper error handling and loading states
+   */
   const fetchGigs = async () => {
     setGigLoading(true)
     try {
       const response = await fetch('/api/gigs')
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`)
+      }
       const data = await response.json()
-      setGigs(data || [])
+      setGigs(Array.isArray(data) ? data : [])
     } catch (error) {
       console.error('Error fetching gigs:', error)
       setGigs([])
+      setAlert({ type: 'error', message: 'Failed to load gigs. Please try again.' })
     } finally {
       setGigLoading(false)
     }
