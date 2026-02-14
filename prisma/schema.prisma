@@ -23,6 +23,9 @@ model User {
   phoneNumber       String?
   county            String?
   bio               String?
+  sellerRating      Float              @default(0)
+  sellerReviewCount Int                @default(0)
+  theme             String             @default("default")
   createdAt         DateTime           @default(now())
   updatedAt         DateTime           @updatedAt
   gigs              Gig[]
@@ -34,6 +37,19 @@ model User {
   sellerApplication SellerApplication?
   buyerTransactions EscrowTransaction[] @relation("BuyerTransactions")
   sellerTransactions EscrowTransaction[] @relation("SellerTransactions")
+  products          Product[]           @relation("ProductSeller")
+  productReviews    ProductReview[]
+  wishlistItems     WishlistItem[]
+  cart              Cart[]
+  user1Conversations Conversation[]     @relation("User1Conversations")
+  user2Conversations Conversation[]     @relation("User2Conversations")
+  notifications     Notification[]
+  bids              Bid[]
+  applications      Application[]      @relation("JobApplications")
+  sellerReviews     SellerReview[]     @relation("SellerReviews")
+  givenSellerReviews SellerReview[]    @relation("ReviewerSellerReviews")
+  systemBackups     SystemBackup[]
+  systemLogs        SystemLog[]
 
   @@map("users")
 }
@@ -91,6 +107,7 @@ model Gig {
   rating       Float     @default(0)
   reviewCount  Int       @default(0)
   orderCount   Int       @default(0)
+  allowBidding Boolean   @default(false)
   createdAt    DateTime  @default(now())
   updatedAt    DateTime  @updatedAt
   sellerId     String
@@ -98,6 +115,9 @@ model Gig {
   orders       Order[]
   packages     Package[]
   reviews      Review[]
+  bids         Bid[]
+  interviewCriteria InterviewCriteria?
+  applications Application[]
 
   @@map("gigs")
 }
@@ -122,24 +142,48 @@ model Order {
   totalAmount  Float
   deliveryDate DateTime?
   requirements String?
+  phoneNumber  String?
+  items        Json?
   createdAt    DateTime    @default(now())
   updatedAt    DateTime    @updatedAt
   buyerId      String
-  gigId        String
+  gigId        String?
   packageId    String?
   messages     Message[]
+  payments     Payment[]
   buyer        User        @relation(fields: [buyerId], references: [id])
-  gig          Gig         @relation(fields: [gigId], references: [id])
+  gig          Gig?        @relation(fields: [gigId], references: [id])
   package      Package?    @relation(fields: [packageId], references: [id])
   review       Review?
+  sellerReviews SellerReview[]
 
   @@map("orders")
+}
+
+model Payment {
+  id                  String    @id @default(cuid())
+  orderId             String
+  amount              Float
+  phoneNumber         String
+  status              PaymentStatus @default(PENDING)
+  checkoutRequestId   String?   @unique
+  merchantRequestId   String?
+  mpesaReceiptNumber  String?
+  transactionDate     String?
+  failureReason       String?
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
+  order               Order     @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  @@map("payments")
 }
 
 model Review {
   id         String   @id @default(cuid())
   rating     Int
   comment    String?
+  images     String[]
+  isVerified Boolean  @default(false)
   createdAt  DateTime @default(now())
   reviewerId String
   gigId      String
@@ -158,11 +202,43 @@ model Message {
   isRead      Boolean  @default(false)
   createdAt   DateTime @default(now())
   senderId    String
-  orderId     String
-  order       Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  orderId     String?
+  conversationId String?
+  order       Order?    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  conversation Conversation? @relation(fields: [conversationId], references: [id], onDelete: Cascade)
   sender      User     @relation(fields: [senderId], references: [id])
 
   @@map("messages")
+}
+
+model Conversation {
+  id        String    @id @default(cuid())
+  user1Id   String
+  user2Id   String
+  lastMessageAt DateTime @default(now())
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  user1     User      @relation("User1Conversations", fields: [user1Id], references: [id])
+  user2     User      @relation("User2Conversations", fields: [user2Id], references: [id])
+  messages  Message[]
+
+  @@unique([user1Id, user2Id])
+  @@map("conversations")
+}
+
+model Notification {
+  id        String           @id @default(cuid())
+  title     String
+  message   String
+  type      NotificationType
+  isRead    Boolean          @default(false)
+  userId    String
+  entityId  String?
+  entityType String?
+  createdAt DateTime         @default(now())
+  user      User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("notifications")
 }
 
 model Proposal {
@@ -218,19 +294,59 @@ model Product {
   title            String
   description      String
   price            Float
+  discountPrice    Float?
+  discountPercent  Int?
   images           String[]
   category         String
+  brand            String?
   stock            Int                 @default(0)
   isActive         Boolean             @default(true)
   rating           Float               @default(0)
   reviewCount      Int                 @default(0)
   orderCount       Int                 @default(0)
+  features         String[]
+  materials        String?
+  warranty         String?
+  specifications   Json?
+  whatsappNumber   String?
   createdAt        DateTime            @default(now())
   updatedAt        DateTime            @updatedAt
+  sellerId         String?
+  seller           User?               @relation("ProductSeller", fields: [sellerId], references: [id])
+  reviews          ProductReview[]
+  wishlistItems    WishlistItem[]
   escrowItems      EscrowItem[]
   escrowTransactions EscrowTransaction[]
+  cart             Cart[]
 
   @@map("products")
+}
+
+model ProductReview {
+  id          String   @id @default(cuid())
+  productId   String
+  userId      String
+  rating      Int      @db.SmallInt
+  title       String?
+  comment     String
+  isVerified  Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  product     Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  user        User     @relation(fields: [userId], references: [id])
+
+  @@map("product_reviews")
+}
+
+model WishlistItem {
+  id        String   @id @default(cuid())
+  userId    String
+  productId String
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, productId])
+  @@map("wishlist_items")
 }
 
 model Category {
@@ -244,6 +360,37 @@ model Category {
   @@map("categories")
 }
 
+model Cart {
+  id        String   @id @default(cuid())
+  userId    String
+  productId String
+  quantity  Int      @default(1)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, productId])
+  @@map("cart")
+}
+
+model SystemTheme {
+  id         String   @id @default(cuid())
+  name       String   @unique
+  primary    String
+  secondary  String
+  accent     String
+  background String   @default("0 0% 100%")
+  foreground String   @default("240 10% 3.9%")
+  muted      String   @default("240 4.8% 95.9%")
+  border     String   @default("240 5.9% 90%")
+  isActive   Boolean  @default(false)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@map("system_themes")
+}
+
 model ThemeSettings {
   id             String   @id @default(cuid())
   primaryColor   String   @default("#3b82f6")
@@ -254,6 +401,12 @@ model ThemeSettings {
   updatedAt      DateTime @updatedAt
 
   @@map("theme_settings")
+}
+
+enum PaymentStatus {
+  PENDING
+  SUCCESS
+  FAILED
 }
 
 enum EscrowStatus {
@@ -291,15 +444,233 @@ enum UserType {
 
 enum OrderStatus {
   PENDING
+  PAID
   IN_PROGRESS
   DELIVERED
   COMPLETED
   CANCELLED
   DISPUTED
+  FAILED
 }
 
 enum ProposalStatus {
   PENDING
   ACCEPTED
   REJECTED
+}
+
+model Bid {
+  id          String    @id @default(cuid())
+  amount      Float
+  proposal    String
+  timeline    Int
+  status      BidStatus @default(PENDING)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  bidderId    String
+  gigId       String
+  bidder      User      @relation(fields: [bidderId], references: [id], onDelete: Cascade)
+  gig         Gig       @relation(fields: [gigId], references: [id], onDelete: Cascade)
+  interview   Interview?
+
+  @@map("bids")
+}
+
+model InterviewCriteria {
+  id           String   @id @default(cuid())
+  questions    String[]
+  requirements String[]
+  skills       String[]
+  experience   String?
+  budget       Float?
+  timeline     Int?
+  isActive     Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  gigId        String   @unique
+  gig          Gig      @relation(fields: [gigId], references: [id], onDelete: Cascade)
+  interviews   Interview[]
+
+  @@map("interview_criteria")
+}
+
+model Interview {
+  id          String          @id @default(cuid())
+  status      InterviewStatus @default(SCHEDULED)
+  scheduledAt DateTime?
+  responses   Json?
+  notes       String?
+  score       Int?
+  feedback    String?
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+  bidId       String          @unique
+  criteriaId  String
+  bid         Bid             @relation(fields: [bidId], references: [id], onDelete: Cascade)
+  criteria    InterviewCriteria @relation(fields: [criteriaId], references: [id], onDelete: Cascade)
+
+  @@map("interviews")
+}
+
+enum BidStatus {
+  PENDING
+  ACCEPTED
+  REJECTED
+  WITHDRAWN
+}
+
+enum InterviewStatus {
+  SCHEDULED
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+}
+
+model Application {
+  id           String            @id @default(cuid())
+  jobId        String
+  applicantId  String
+  coverLetter  String
+  skills       String
+  experience   String
+  status       ApplicationStatus @default(PENDING)
+  createdAt    DateTime          @default(now())
+  updatedAt    DateTime          @updatedAt
+  job          Gig               @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  applicant    User              @relation("JobApplications", fields: [applicantId], references: [id], onDelete: Cascade)
+  interviews   JobInterview[]
+
+  @@unique([jobId, applicantId])
+  @@map("applications")
+}
+
+model JobInterview {
+  id            String                @id @default(cuid())
+  applicationId String
+  scheduledAt   DateTime
+  questions     String[]
+  duration      Int                   @default(30)
+  type          InterviewType         @default(VIDEO)
+  status        JobInterviewStatus    @default(SCHEDULED)
+  notes         String?
+  createdAt     DateTime              @default(now())
+  updatedAt     DateTime              @updatedAt
+  application   Application           @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+
+  @@map("job_interviews")
+}
+
+enum InterviewType {
+  VIDEO
+  PHONE
+  IN_PERSON
+}
+
+enum JobInterviewStatus {
+  SCHEDULED
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+}
+
+enum NotificationType {
+  ORDER_UPDATE
+  MESSAGE
+  PAYMENT
+  REVIEW
+  SYSTEM
+  BID_RECEIVED
+  BID_ACCEPTED
+  BID_REJECTED
+  INTERVIEW_SCHEDULED
+  APPLICATION
+}
+
+model SellerReview {
+  id         String   @id @default(cuid())
+  sellerId   String
+  reviewerId String
+  rating     Int      @db.SmallInt
+  comment    String?
+  orderId    String?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  seller     User     @relation("SellerReviews", fields: [sellerId], references: [id], onDelete: Cascade)
+  reviewer   User     @relation("ReviewerSellerReviews", fields: [reviewerId], references: [id], onDelete: Cascade)
+  order      Order?   @relation(fields: [orderId], references: [id], onDelete: SetNull)
+
+  @@unique([reviewerId, sellerId, orderId])
+  @@map("seller_reviews")
+}
+
+model SystemBackup {
+  id          String       @id @default(cuid())
+  type        BackupType   @default(MANUAL)
+  status      BackupStatus @default(PENDING)
+  size        Int?
+  filename    String?
+  createdAt   DateTime     @default(now())
+  createdBy   String
+  createdByUser User       @relation(fields: [createdBy], references: [id])
+
+  @@map("system_backups")
+}
+
+model SecuritySettings {
+  id                String  @id @default("default")
+  autoBackupEnabled Boolean @default(true)
+  backupFrequency   String  @default("DAILY")
+  maxLoginAttempts  Int     @default(5)
+  sessionTimeout    Int     @default(120)
+  twoFactorRequired Boolean @default(false)
+  passwordMinLength Int     @default(8)
+  updatedAt         DateTime @updatedAt
+
+  @@map("security_settings")
+}
+
+model SystemLog {
+  id        String    @id @default(cuid())
+  type      LogType   @default(INFO)
+  message   String
+  details   Json?
+  userId    String?
+  ipAddress String?
+  userAgent String?
+  createdAt DateTime  @default(now())
+  user      User?     @relation(fields: [userId], references: [id])
+
+  @@map("system_logs")
+}
+
+model Skill {
+  id          String   @id @default(cuid())
+  name        String   @unique
+  category    String
+  description String?
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("skills")
+}
+
+enum BackupType {
+  MANUAL
+  AUTOMATIC
+}
+
+enum BackupStatus {
+  PENDING
+  IN_PROGRESS
+  COMPLETED
+  FAILED
+}
+
+enum LogType {
+  INFO
+  WARNING
+  ERROR
+  SECURITY
+  BACKUP
 }

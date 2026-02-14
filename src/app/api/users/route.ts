@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-import { prisma } from '../../../../lib/prisma'
+import { prisma } from '@/lib/prisma'
 
 /**
  * GET /api/users
@@ -11,6 +11,7 @@ export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url)
     const id = searchParams.get('id')
+    const type = searchParams.get('type')
     
     if (id) {
       const user = await prisma.user.findUnique({
@@ -20,6 +21,7 @@ export async function GET(request: Request) {
           name: true,
           email: true,
           userType: true,
+          phoneNumber: true,
           createdAt: true,
           updatedAt: true
         }
@@ -32,14 +34,46 @@ export async function GET(request: Request) {
       return NextResponse.json(user)
     }
     
+    let whereClause = {}
+    if (type === 'talent') {
+      whereClause = { userType: { in: ['FREELANCER', 'AGENCY'] } }
+    }
+    
     const users = await prisma.user.findMany({
+      where: whereClause,
       select: {
         id: true,
         name: true,
         email: true,
         userType: true,
+        phoneNumber: true,
+        bio: true,
+        profileImage: true,
+        county: true,
+        sellerStatus: true,
         createdAt: true,
-        updatedAt: true
+        updatedAt: true,
+        gigs: {
+          select: {
+            id: true,
+            title: true,
+            price: true,
+            rating: true,
+            reviewCount: true,
+            orderCount: true,
+            category: true,
+            tags: true
+          },
+          where: { isActive: true },
+          take: 3
+        },
+        _count: {
+          select: {
+            gigs: true,
+            orders: true,
+            reviews: true
+          }
+        }
       },
       orderBy: { createdAt: 'desc' }
     })

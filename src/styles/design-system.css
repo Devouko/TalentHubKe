@@ -1,0 +1,163 @@
+/* Unified Design System - Clean Light/Dark Theme */
+
+:root {
+  /* Light Theme Colors */
+  --primary: 142 76% 36%;        /* Green */
+  --primary-foreground: 0 0% 98%;
+  --secondary: 47 96% 53%;       /* Yellow-Green */
+  --secondary-foreground: 0 0% 9%;
+  --accent: 84 100% 50%;         /* Lime */
+  --accent-foreground: 0 0% 9%;
+  
+  /* Neutral Colors - Light */
+  --background: 0 0% 100%;       /* White */
+  --foreground: 0 0% 9%;         /* Dark Gray */
+  --muted: 210 40% 96%;          /* Light Gray */
+  --muted-foreground: 215 16% 47%;
+  
+  /* UI Elements - Light */
+  --card: 0 0% 100%;
+  --card-foreground: 0 0% 9%;
+  --popover: 0 0% 100%;
+  --popover-foreground: 0 0% 9%;
+  --border: 214 32% 91%;         /* Light Border */
+  --input: 214 32% 91%;          /* Light Input */
+  --ring: 142 76% 36%;           /* Green Ring */
+  
+  /* Status Colors */
+  --success: 142 76% 36%;
+  --success-foreground: 0 0% 98%;
+  --warning: 38 92% 50%;
+  --warning-foreground: 0 0% 9%;
+  --destructive: 0 84% 60%;
+  --destructive-foreground: 0 0% 98%;
+  
+  /* Layout & Typography */
+  --radius: 0.75rem;
+  --font-sans: ui-sans-serif, system-ui, sans-serif;
+  --font-mono: ui-monospace, 'Cascadia Code', monospace;
+}
+
+.dark {
+  /* Dark Theme Colors */
+  --background: 0 0% 3.9%;       /* Very Dark Gray */
+  --foreground: 0 0% 98%;        /* Light Gray */
+  --muted: 0 0% 14.9%;           /* Dark Muted */
+  --muted-foreground: 0 0% 63.9%;
+  
+  /* UI Elements - Dark */
+  --card: 0 0% 3.9%;
+  --card-foreground: 0 0% 98%;
+  --popover: 0 0% 3.9%;
+  --popover-foreground: 0 0% 98%;
+  --border: 0 0% 14.9%;          /* Dark Border */
+  --input: 0 0% 14.9%;           /* Dark Input */
+}
+
+/* Base Styles */
+* {
+  @apply border-border transition-colors duration-200;
+}
+
+body {
+  @apply bg-background text-foreground font-sans antialiased overflow-x-hidden;
+  font-feature-settings: "rlig" 1, "calt" 1;
+}
+
+html {
+  @apply scroll-smooth;
+}
+
+/* Component Classes */
+.btn {
+  @apply inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50;
+}
+
+.btn-primary {
+  @apply btn bg-primary text-primary-foreground hover:bg-primary/90;
+}
+
+.btn-secondary {
+  @apply btn bg-secondary text-secondary-foreground hover:bg-secondary/80;
+}
+
+.btn-outline {
+  @apply btn border border-input bg-background hover:bg-accent hover:text-accent-foreground;
+}
+
+.btn-ghost {
+  @apply btn hover:bg-accent hover:text-accent-foreground;
+}
+
+.btn-sm {
+  @apply h-9 rounded-md px-3;
+}
+
+.btn-md {
+  @apply h-10 px-4 py-2;
+}
+
+.btn-lg {
+  @apply h-11 rounded-md px-8;
+}
+
+.card {
+  @apply bg-card text-card-foreground rounded-xl border shadow-sm;
+}
+
+.input {
+  @apply flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50;
+}
+
+.textarea {
+  @apply flex min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50;
+}
+
+.select {
+  @apply flex h-10 w-full items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50;
+}
+
+.label {
+  @apply text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70;
+}
+
+/* Layout Classes */
+.container {
+  @apply w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8;
+}
+
+.section {
+  @apply py-16 sm:py-20 lg:py-24;
+}
+
+.grid-responsive {
+  @apply grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6;
+}
+
+/* Status Indicators */
+.status-success {
+  @apply bg-success text-success-foreground;
+}
+
+.status-warning {
+  @apply bg-warning text-warning-foreground;
+}
+
+.status-error {
+  @apply bg-destructive text-destructive-foreground;
+}
+
+/* Focus Styles */
+.focus-ring {
+  @apply focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2;
+}
+
+/* Animation Classes */
+.animate-fade-in {
+  animation: fadeIn 200ms ease-in-out;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}

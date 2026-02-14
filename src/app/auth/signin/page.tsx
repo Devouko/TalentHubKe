@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import { signIn } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
-import { motion } from 'motion/react'
+import { motion } from 'framer-motion'
 import { User, Lock } from 'lucide-react'
 
 export default function SignIn() {
@@ -19,32 +19,8 @@ export default function SignIn() {
     const result = await signIn('credentials', {
       email,
       password,
-      redirect: false
+      callbackUrl: '/dashboard' // This will be overridden by NextAuth redirect callback
     })
-
-    if (result?.ok) {
-      // Get user session to determine redirect
-      const response = await fetch('/api/auth/session')
-      const session = await response.json()
-      
-      if (session?.user?.userType) {
-        switch (session.user.userType) {
-          case 'ADMIN':
-            router.push('/admin')
-            break
-          case 'FREELANCER':
-          case 'AGENCY':
-            router.push('/seller-dashboard')
-            break
-          case 'CLIENT':
-          default:
-            router.push('/dashboard')
-            break
-        }
-      } else {
-        router.push('/')
-      }
-    }
     
     setLoading(false)
   }

@@ -1,9 +1,9 @@
-import NextAuth from 'next-auth'
+import NextAuth, { type NextAuthOptions } from 'next-auth'
 import CredentialsProvider from 'next-auth/providers/credentials'
 import bcrypt from 'bcryptjs'
 import { prisma } from '@/lib/prisma'
 
-export const authOptions = {
+export const authOptions: NextAuthOptions = {
   providers: [
     CredentialsProvider({
       name: 'credentials',
@@ -13,22 +13,33 @@ export const authOptions = {
       },
       async authorize(credentials) {
         if (!credentials?.email || !credentials?.password) {
-          return null
+          throw new Error('Email and password are required')
         }
 
         try {
           const user = await prisma.user.findUnique({
-            where: { email: credentials.email }
+            where: { email: credentials.email },
+            select: {
+              id: true,
+              email: true,
+              name: true,
+              password: true,
+              userType: true,
+              image: true,
+              profileImage: true,
+              isVerified: true,
+              sellerStatus: true
+            }
           })
 
-          if (!user || !user.password) {
-            return null
+          if (!user?.password) {
+            throw new Error('Invalid credentials')
           }
 
           const isPasswordValid = await bcrypt.compare(credentials.password, user.password)
 
           if (!isPasswordValid) {
-            return null
+            throw new Error('Invalid credentials')
           }
 
           return {
@@ -50,10 +61,10 @@ export const authOptions = {
   ],
   session: {
     strategy: 'jwt' as const,
-    maxAge: 30 * 24 * 60 * 60
+    maxAge: 2 * 60 * 60
   },
   jwt: {
-    maxAge: 30 * 24 * 60 * 60
+    maxAge: 2 * 60 * 60
   },
   callbacks: {
     async jwt({ token, user }) {
@@ -66,8 +77,8 @@ export const authOptions = {
       return token
     },
     async session({ session, token }) {
-      if (token) {
-        session.user.id = token.sub!
+      if (token?.sub) {
+        session.user.id = token.sub
         session.user.userType = token.userType as string
         session.user.isVerified = token.isVerified as boolean
         session.user.sellerStatus = token.sellerStatus as string
@@ -75,7 +86,17 @@ export const authOptions = {
       }
       return session
     },
-    async redirect({ url, baseUrl }) {
+    async redirect({ url, baseUrl, token }) {
+      if (url === baseUrl || url === `${baseUrl}/` || url === `${baseUrl}/auth/signin`) {
+        if (token?.userType === 'ADMIN') {
+          return `${baseUrl}/admin`
+        }
+        if (token?.userType === 'FREELANCER' || token?.userType === 'AGENCY') {
+          return `${baseUrl}/seller-dashboard`
+        }
+        return `${baseUrl}/dashboard`
+      }
+      
       if (url.startsWith('/')) return `${baseUrl}${url}`
       if (new URL(url).origin === baseUrl) return url
       return baseUrl

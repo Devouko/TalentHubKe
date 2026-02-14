@@ -1,0 +1,29 @@
+:root {
+  --bg-primary: #f7f9fc;
+  --bg-secondary: #ffffff;
+  --surface: rgba(0,0,0,.03);
+  --border-subtle: rgba(0,0,0,.06);
+  --accent: #059669;
+  --accent-soft: rgba(5,150,105,.2);
+  --text-primary: #0f172a;
+  --text-muted: #475569;
+}
+
+.dark {
+  --bg-primary: #050b14;
+  --bg-secondary: #0b1220;
+  --surface: rgba(255,255,255,.05);
+  --border-subtle: rgba(255,255,255,.08);
+  --accent: #10b981;
+  --accent-soft: rgba(16,185,129,.25);
+  --text-primary: #f8fafc;
+  --text-muted: #94a3b8;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}

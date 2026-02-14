@@ -1,59 +1,84 @@
-import { NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '../auth/[...nextauth]/route';
-import { prisma } from '@/lib/prisma';
+import { NextRequest, NextResponse } from 'next/server'
+import { prisma } from '@/lib/prisma'
+import { getServerSession } from 'next-auth'
+import { authOptions } from '../auth/[...nextauth]/route'
 
-export async function GET() {
+export async function POST(request: NextRequest) {
   try {
-    const session = await getServerSession(authOptions);
-    
-    if (!session) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    const session = await getServerSession(authOptions)
+    if (!session?.user?.id) {
+      return NextResponse.json({ error: 'Authentication required' }, { status: 401 })
     }
 
-    // Get all orders where user is either buyer or seller
-    const orders = await prisma.order.findMany({
+    const { userId } = await request.json()
+    
+    if (!userId) {
+      return NextResponse.json({ error: 'User ID required' }, { status: 400 })
+    }
+
+    if (userId === session.user.id) {
+      return NextResponse.json({ error: 'Cannot create conversation with yourself' }, { status: 400 })
+    }
+
+    // Check if conversation already exists
+    const existing = await prisma.conversation.findFirst({
       where: {
         OR: [
-          { buyerId: session.user.id },
-          { gig: { sellerId: session.user.id } }
+          { user1Id: session.user.id, user2Id: userId },
+          { user1Id: userId, user2Id: session.user.id }
+        ]
+      }
+    })
+
+    if (existing) {
+      return NextResponse.json({ conversationId: existing.id })
+    }
+
+    // Create new conversation
+    const conversation = await prisma.conversation.create({
+      data: {
+        user1Id: session.user.id,
+        user2Id: userId
+      }
+    })
+
+    return NextResponse.json({ conversationId: conversation.id })
+
+  } catch (error) {
+    console.error('Conversation creation error:', error)
+    return NextResponse.json({ error: 'Failed to create conversation' }, { status: 500 })
+  }
+}
+
+export async function GET(request: NextRequest) {
+  try {
+    const session = await getServerSession(authOptions)
+    if (!session?.user?.id) {
+      return NextResponse.json({ error: 'Authentication required' }, { status: 401 })
+    }
+
+    const conversations = await prisma.conversation.findMany({
+      where: {
+        OR: [
+          { user1Id: session.user.id },
+          { user2Id: session.user.id }
         ]
       },
       include: {
-        buyer: { select: { id: true, name: true, email: true } },
-        gig: { 
-          include: { 
-            seller: { select: { id: true, name: true, email: true } } 
-          } 
-        },
+        user1: { select: { id: true, name: true, profileImage: true } },
+        user2: { select: { id: true, name: true, profileImage: true } },
         messages: {
           orderBy: { createdAt: 'desc' },
           take: 1
         }
-      }
-    });
+      },
+      orderBy: { lastMessageAt: 'desc' }
+    })
 
-    // Transform orders into conversations
-    const conversations = orders.map(order => {
-      const otherUser = order.buyerId === session.user.id 
-        ? order.gig.seller 
-        : order.buyer;
-      
-      const lastMessage = order.messages[0];
-      
-      return {
-        id: order.id,
-        orderId: order.id,
-        otherUser,
-        lastMessage: lastMessage?.content || null,
-        lastMessageTime: lastMessage?.createdAt || order.createdAt,
-        gigTitle: order.gig.title
-      };
-    });
+    return NextResponse.json(conversations)
 
-    return NextResponse.json(conversations);
   } catch (error) {
-    console.error('Error fetching conversations:', error);
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    console.error('Conversations fetch error:', error)
+    return NextResponse.json({ error: 'Failed to fetch conversations' }, { status: 500 })
   }
 }

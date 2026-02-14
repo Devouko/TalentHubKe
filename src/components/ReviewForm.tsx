@@ -1,117 +1,112 @@
 'use client'
 
 import { useState } from 'react'
-import { Star, Send, X } from 'lucide-react'
+import { Star, MessageSquare } from 'lucide-react'
 
 interface ReviewFormProps {
-  gigId?: string
-  orderId?: string
-  onSubmit?: (review: { rating: number; comment: string }) => void
-  onCancel?: () => void
+  orderId: string
+  gigTitle: string
+  onReviewSubmitted?: () => void
 }
 
-export default function ReviewForm({ gigId, orderId, onSubmit, onCancel }: ReviewFormProps) {
+export default function ReviewForm({ orderId, gigTitle, onReviewSubmitted }: ReviewFormProps) {
+  const [isOpen, setIsOpen] = useState(false)
   const [rating, setRating] = useState(0)
   const [comment, setComment] = useState('')
-  const [isSubmitting, setIsSubmitting] = useState(false)
+  const [loading, setLoading] = useState(false)
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    e.stopPropagation()
-    
     if (rating === 0) return
 
-    setIsSubmitting(true)
-    
+    setLoading(true)
     try {
       const response = await fetch('/api/reviews', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ rating, comment, gigId, orderId })
+        body: JSON.stringify({ orderId, rating, comment })
       })
-      
+
       if (response.ok) {
+        setIsOpen(false)
         setRating(0)
         setComment('')
-        onSubmit?.({ rating, comment })
+        onReviewSubmitted?.()
       }
     } catch (error) {
-      console.error('Error:', error)
+      console.error('Review submission failed:', error)
     } finally {
-      setIsSubmitting(false)
+      setLoading(false)
     }
   }
 
-  const handleCancel = (e: React.MouseEvent) => {
-    e.preventDefault()
-    e.stopPropagation()
-    onCancel?.()
+  if (!isOpen) {
+    return (
+      <button
+        onClick={() => setIsOpen(true)}
+        className="flex items-center gap-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-sm font-medium transition-colors"
+      >
+        <MessageSquare className="w-4 h-4" />
+        Leave Review
+      </button>
+    )
   }
 
   return (
-    <div className="bg-black/20 backdrop-blur-md border border-white/10 rounded-xl p-6">
-      <h3 className="text-xl font-bold mb-4 text-white">Leave a Review</h3>
-      
-      <form onSubmit={handleSubmit} className="space-y-4">
-        <div>
-          <div className="flex gap-1 mb-2">
-            {[1, 2, 3, 4, 5].map((star) => (
-              <button
-                key={star}
-                type="button"
-                onClick={(e) => {
-                  e.preventDefault()
-                  setRating(star)
-                }}
-                className="p-1 hover:scale-110 transition-transform"
-              >
-                <Star
-                  className={`w-6 h-6 ${
-                    star <= rating ? 'fill-yellow-400 text-yellow-400' : 'text-gray-400'
-                  }`}
-                />
-              </button>
-            ))}
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+      <div className="bg-white dark:bg-slate-800 rounded-lg p-6 w-full max-w-md mx-4">
+        <h3 className="text-lg font-semibold mb-4">Review: {gigTitle}</h3>
+        
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium mb-2">Rating</label>
+            <div className="flex gap-1">
+              {[1, 2, 3, 4, 5].map((star) => (
+                <button
+                  key={star}
+                  type="button"
+                  onClick={() => setRating(star)}
+                  className="p-1"
+                >
+                  <Star
+                    className={`w-6 h-6 ${
+                      star <= rating ? 'fill-yellow-400 text-yellow-400' : 'text-gray-300'
+                    }`}
+                  />
+                </button>
+              ))}
+            </div>
           </div>
-        </div>
 
-        <textarea
-          value={comment}
-          onChange={(e) => setComment(e.target.value)}
-          placeholder="Write your review..."
-          className="w-full p-3 bg-black/20 backdrop-blur-md border border-white/10 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 resize-none text-white placeholder-gray-400"
-          rows={3}
-        />
+          <div>
+            <label className="block text-sm font-medium mb-2">Comment</label>
+            <textarea
+              value={comment}
+              onChange={(e) => setComment(e.target.value)}
+              placeholder="Share your experience..."
+              rows={4}
+              className="w-full p-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-slate-700 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+            />
+          </div>
 
-        <div className="flex gap-3">
-          <button
-            type="submit"
-            disabled={rating === 0 || isSubmitting}
-            onClick={handleSubmit}
-            className="flex-1 py-2 bg-purple-600/80 backdrop-blur-md border border-purple-500/30 text-white rounded-lg font-semibold hover:bg-purple-600/90 disabled:opacity-50 flex items-center justify-center gap-2 transition-all"
-          >
-            {isSubmitting ? (
-              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white" />
-            ) : (
-              <>
-                <Send className="w-4 h-4" />
-                Submit
-              </>
-            )}
-          </button>
-          
-          {onCancel && (
+          <div className="flex gap-2">
             <button
               type="button"
-              onClick={handleCancel}
-              className="px-6 py-2 bg-red-600/80 backdrop-blur-md border border-red-500/30 text-white rounded-lg hover:bg-red-600/90 flex items-center gap-2 transition-all"
+              onClick={() => setIsOpen(false)}
+              className="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-slate-700 transition-colors"
             >
-              <X className="w-4 h-4" />
               Cancel
             </button>
-          )}
-        </div>
-      </form>
+            <button
+              type="submit"
+              disabled={loading || rating === 0}
+              className="flex-1 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white rounded-lg transition-colors"
+            >
+              {loading ? 'Submitting...' : 'Submit Review'}
+            </button>
+          </div>
+        </form>
+      </div>
     </div>
   )
 }

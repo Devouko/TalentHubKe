@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import { useRouter } from 'next/navigation'
 import { Users, Search, Filter, Edit, Trash2, Shield, Ban, CheckCircle, AlertTriangle } from 'lucide-react'
 import AdminSidebarLayout from '../AdminSidebarLayout'
 
@@ -20,15 +21,12 @@ export default function UsersPage() {
   const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState('')
   const [filterType, setFilterType] = useState('ALL')
+  const router = useRouter()
 
   useEffect(() => {
     fetchUsers()
   }, [])
 
-  /**
-   * Fetches users from the API with proper error handling
-   * Includes loading states and error management
-   */
   const fetchUsers = async () => {
     try {
       const response = await fetch('/api/users')
@@ -42,6 +40,36 @@ export default function UsersPage() {
       setUsers([])
     } finally {
       setLoading(false)
+    }
+  }
+
+  const deleteUser = async (userId: string) => {
+    if (!confirm('Are you sure you want to delete this user?')) return
+    
+    try {
+      const response = await fetch(`/api/admin/users/${userId}`, {
+        method: 'DELETE'
+      })
+      if (response.ok) {
+        fetchUsers()
+      }
+    } catch (error) {
+      console.error('Error deleting user:', error)
+    }
+  }
+
+  const toggleUserStatus = async (userId: string, action: 'activate' | 'deactivate') => {
+    try {
+      const response = await fetch(`/api/admin/users/${userId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action })
+      })
+      if (response.ok) {
+        fetchUsers()
+      }
+    } catch (error) {
+      console.error('Error updating user:', error)
     }
   }
 
@@ -137,13 +165,25 @@ export default function UsersPage() {
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                             <div className="flex gap-2">
-                              <button className="text-blue-400 hover:text-blue-300">
+                              <button 
+                                onClick={() => router.push(`/admin/users/${user.id}/edit`)}
+                                className="text-blue-400 hover:text-blue-300 p-1 rounded"
+                                title="Edit User"
+                              >
                                 <Edit className="w-4 h-4" />
                               </button>
-                              <button className="text-green-400 hover:text-green-300">
+                              <button 
+                                onClick={() => toggleUserStatus(user.id, 'activate')}
+                                className="text-green-400 hover:text-green-300 p-1 rounded"
+                                title="Activate User"
+                              >
                                 <CheckCircle className="w-4 h-4" />
                               </button>
-                              <button className="text-red-400 hover:text-red-300">
+                              <button 
+                                onClick={() => deleteUser(user.id)}
+                                className="text-red-400 hover:text-red-300 p-1 rounded"
+                                title="Delete User"
+                              >
                                 <Trash2 className="w-4 h-4" />
                               </button>
                             </div>

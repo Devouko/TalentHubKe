@@ -1,742 +1,463 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useSession, signOut } from 'next-auth/react'
-import Link from 'next/link'
-import { 
-  DollarSign, Package, Star, TrendingUp, Eye, MessageCircle, 
-  Plus, Edit, BarChart3, Clock, ShoppingCart,
-  Truck, Users, AlertCircle, Settings, Download, Upload, Bell, LogOut
-} from 'lucide-react'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card'
-import { Button } from '../components/ui/button'
-import { AreaChart, Area, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts'
+import { Store, TrendingUp, DollarSign, Package, Plus, Eye, Edit, Trash2, ShoppingCart, LogOut, User } from 'lucide-react'
+import { useRouter } from 'next/navigation'
 
 export default function SellerDashboard() {
   const { data: session } = useSession()
+  const router = useRouter()
   const [activeTab, setActiveTab] = useState('overview')
-  const [createProductForm, setCreateProductForm] = useState({
-    title: '',
-    description: '',
-    category: 'Accounts',
-    price: '',
-    stock: '',
-    images: []
+  const [gigs, setGigs] = useState([])
+  const [products, setProducts] = useState([])
+  const [orders, setOrders] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [stats, setStats] = useState({
+    totalEarnings: 0,
+    activeGigs: 0,
+    activeProducts: 0,
+    completedOrders: 0,
+    avgRating: 0
   })
-  const [createProductLoading, setCreateProductLoading] = useState(false)
 
-  const handleSignOut = () => {
-    signOut({ callbackUrl: '/auth' })
-  }
+  useEffect(() => {
+    fetchSellerData()
+  }, [])
 
-  const handleCreateProduct = async (e) => {
-    e.preventDefault()
-    setCreateProductLoading(true)
+  const fetchSellerData = async () => {
     try {
-      const response = await fetch('/api/products', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          ...createProductForm,
-          sellerId: session?.user?.id,
-          price: parseFloat(createProductForm.price),
-          stock: parseInt(createProductForm.stock)
-        })
+      const [gigsResponse, productsResponse, ordersResponse] = await Promise.all([
+        fetch(`/api/gigs?sellerId=${session?.user?.id}`),
+        fetch(`/api/products?sellerId=${session?.user?.id}`),
+        fetch(`/api/orders?sellerId=${session?.user?.id}`)
+      ])
+
+      const [gigsData, productsData, ordersData] = await Promise.all([
+        gigsResponse.ok ? gigsResponse.json() : [],
+        productsResponse.ok ? productsResponse.json() : [],
+        ordersResponse.ok ? ordersResponse.json() : []
+      ])
+
+      setGigs(gigsData)
+      setProducts(productsData)
+      setOrders(ordersData)
+
+      const totalEarnings = ordersData
+        .filter(order => order.status === 'COMPLETED')
+        .reduce((sum, order) => sum + order.totalAmount, 0)
+      
+      const completedOrders = ordersData.filter(order => order.status === 'COMPLETED').length
+      const avgRating = gigsData.length > 0 
+        ? gigsData.reduce((sum, gig) => sum + gig.rating, 0) / gigsData.length
+        : 0
+
+      setStats({
+        totalEarnings,
+        activeGigs: gigsData.length,
+        activeProducts: productsData.length,
+        completedOrders,
+        avgRating: Number(avgRating.toFixed(1))
       })
-      if (response.ok) {
-        alert('Product created successfully!')
-        setCreateProductForm({
-          title: '',
-          description: '',
-          category: 'Accounts',
-          price: '',
-          stock: '',
-          images: []
-        })
-        setActiveTab('products')
-      } else {
-        alert('Failed to create product.')
-      }
     } catch (error) {
-      alert('An error occurred.')
+      console.error('Error fetching seller data:', error)
     } finally {
-      setCreateProductLoading(false)
+      setLoading(false)
     }
   }
 
-  const stats = {
-    totalEarnings: 145850,
-    monthlyEarnings: 32400,
-    activeProducts: 12,
-    totalOrders: 256,
-    pendingOrders: 8,
-    avgRating: 4.8,
-    conversionRate: 12.5
-  }
-
-  const earningsData = [
-    { month: 'Jan', earnings: 18500 },
-    { month: 'Feb', earnings: 22200 },
-    { month: 'Mar', earnings: 28800 },
-    { month: 'Apr', earnings: 25500 },
-    { month: 'May', earnings: 35200 },
-    { month: 'Jun', earnings: 32400 }
-  ]
-
-  const orderStatusData = [
-    { name: 'Completed', value: 156, color: '#10b981' },
-    { name: 'Processing', value: 8, color: '#eab308' },
-    { name: 'Shipped', value: 12, color: '#8b5cf6' },
-    { name: 'Pending', value: 5, color: '#f59e0b' }
-  ]
-
-  const productPerformance = [
-    { product: 'Headphones', orders: 45, revenue: 112500 },
-    { product: 'Smart Watch', orders: 32, revenue: 96000 },
-    { product: 'Phone Case', orders: 68, revenue: 34000 },
-    { product: 'Speaker', orders: 21, revenue: 52500 }
-  ]
-
-  const recentOrders = [
-    {
-      id: 'ORD-001',
-      product: 'Premium Wireless Headphones',
-      customer: 'John Kamau',
-      amount: 2500,
-      status: 'processing',
-      date: '2 hours ago',
-      quantity: 1
-    },
-    {
-      id: 'ORD-002', 
-      product: 'Smart Fitness Watch',
-      customer: 'Mary Wanjiku',
-      amount: 15000,
-      status: 'shipped',
-      date: '5 hours ago',
-      quantity: 1
-    },
-    {
-      id: 'ORD-003',
-      product: 'Phone Protection Case',
-      customer: 'David Ochieng',
-      amount: 850,
-      status: 'delivered',
-      date: '1 day ago',
-      quantity: 2
-    }
-  ]
-
-  const myProducts = [
-    {
-      id: '1',
-      title: 'Premium Wireless Headphones',
-      price: 2500,
-      stock: 25,
-      orders: 45,
-      rating: 4.9,
-      status: 'active',
-      image: '🎧'
-    },
-    {
-      id: '2',
-      title: 'Smart Fitness Watch',
-      price: 15000,
-      stock: 8,
-      orders: 23,
-      rating: 4.8,
-      status: 'low-stock',
-      image: '⌚'
-    },
-    {
-      id: '3',
-      title: 'Phone Protection Case',
-      price: 500,
-      stock: 0,
-      orders: 67,
-      rating: 4.7,
-      status: 'out-of-stock',
-      image: '📱'
-    }
-  ]
-
-  const lowStockAlerts = [
-    { product: 'Smart Fitness Watch', stock: 8 },
-    { product: 'Bluetooth Speaker', stock: 5 },
-    { product: 'Phone Protection Case', stock: 0 }
-  ]
-
-  const renderContent = () => {
-    switch (activeTab) {
-      case 'overview':
-        return renderOverview()
-      case 'products':
-        return renderMyProducts()
-      case 'add-product':
-        return renderAddProduct()
-      case 'orders':
-        return renderOrders()
-      case 'analytics':
-        return renderAnalytics()
-      case 'messages':
-        return renderMessages()
-      default:
-        return renderOverview()
+  const deleteGig = async (gigId) => {
+    if (confirm('Are you sure you want to delete this gig?')) {
+      try {
+        const response = await fetch(`/api/gigs/${gigId}`, { method: 'DELETE' })
+        if (response.ok) {
+          setGigs(prev => prev.filter(gig => gig.id !== gigId))
+          setStats(prev => ({ ...prev, activeGigs: prev.activeGigs - 1 }))
+        }
+      } catch (error) {
+        console.error('Error deleting gig:', error)
+      }
     }
   }
 
-  const renderAddProduct = () => (
-    <div className="space-y-6">
-      <h2 className="text-2xl font-bold">Add Product</h2>
-      
-      <Card className="bg-gray-800/50 border-gray-700">
-        <CardContent className="p-6">
-          <form onSubmit={handleCreateProduct} className="space-y-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div className="md:col-span-2">
-                <label className="block text-sm font-medium text-gray-300 mb-2">Product Title</label>
-                <input
-                  type="text"
-                  placeholder="Premium Gmail Accounts - Aged & Verified"
-                  value={createProductForm.title}
-                  onChange={(e) => setCreateProductForm({...createProductForm, title: e.target.value})}
-                  className="w-full p-3 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-purple-500"
-                  required
-                />
-              </div>
+  const deleteProduct = async (productId) => {
+    if (confirm('Are you sure you want to delete this product?')) {
+      try {
+        const response = await fetch(`/api/products/${productId}`, { method: 'DELETE' })
+        if (response.ok) {
+          setProducts(prev => prev.filter(product => product.id !== productId))
+          setStats(prev => ({ ...prev, activeProducts: prev.activeProducts - 1 }))
+        }
+      } catch (error) {
+        console.error('Error deleting product:', error)
+      }
+    }
+  }
 
-              <div>
-                <label className="block text-sm font-medium text-gray-300 mb-2">Category</label>
-                <select
-                  value={createProductForm.category}
-                  onChange={(e) => setCreateProductForm({...createProductForm, category: e.target.value})}
-                  className="w-full p-3 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-purple-500"
-                  required
-                >
-                  <option value="Accounts">Accounts</option>
-                  <option value="Digital-products">Digital Products</option>
-                  <option value="Proxies">Proxies</option>
-                  <option value="Bulk_Gmails">Bulk Gmails</option>
-                  <option value="KYC">KYC</option>
-                </select>
-              </div>
+  const handleSignOut = async () => {
+    await signOut({ callbackUrl: '/' })
+  }
 
-              <div>
-                <label className="block text-sm font-medium text-gray-300 mb-2">Price (KES)</label>
-                <input
-                  type="number"
-                  placeholder="500"
-                  value={createProductForm.price}
-                  onChange={(e) => setCreateProductForm({...createProductForm, price: e.target.value})}
-                  className="w-full p-3 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-purple-500"
-                  required
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-300 mb-2">Stock Quantity</label>
-                <input
-                  type="number"
-                  placeholder="100"
-                  value={createProductForm.stock}
-                  onChange={(e) => setCreateProductForm({...createProductForm, stock: e.target.value})}
-                  className="w-full p-3 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-purple-500"
-                  required
-                />
-              </div>
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-300 mb-2">Description</label>
-              <textarea
-                placeholder="Describe your product in detail..."
-                value={createProductForm.description}
-                onChange={(e) => setCreateProductForm({...createProductForm, description: e.target.value})}
-                className="w-full p-3 bg-gray-700 border border-gray-600 rounded-lg text-white h-32 focus:outline-none focus:ring-2 focus:ring-purple-500"
-                required
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-300 mb-2">Product Images</label>
-              <div className="space-y-3">
-                <input
-                  type="file"
-                  accept="image/*"
-                  multiple
-                  className="w-full p-3 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-purple-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-purple-600 file:text-white hover:file:bg-purple-700"
-                />
-                <p className="text-xs text-gray-400">Upload product images (multiple files supported)</p>
-                <div className="text-sm text-gray-400">Or enter image URL:</div>
-                <input
-                  type="url"
-                  placeholder="https://example.com/image.jpg"
-                  value={createProductForm.images[0] || ''}
-                  onChange={(e) => setCreateProductForm({...createProductForm, images: [e.target.value]})}
-                  className="w-full p-3 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-purple-500"
-                />
-              </div>
-            </div>
-
-            <div className="flex gap-4">
-              <Button
-                type="submit"
-                disabled={createProductLoading}
-                className="flex-1 bg-purple-600 hover:bg-purple-700"
-              >
-                {createProductLoading ? 'Creating...' : 'Create Product'}
-                {!createProductLoading && <Plus className="w-4 h-4 ml-2" />}
-              </Button>
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => setActiveTab('products')}
-                className="px-6"
-              >
-                Cancel
-              </Button>
-            </div>
-          </form>
-        </CardContent>
-      </Card>
-    </div>
-  )
-
-  const renderOverview = () => (
-    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-      <div className="lg:col-span-2 space-y-6">
-        <Card className="bg-gray-800/50 border-gray-700">
-          <CardHeader>
-            <CardTitle className="text-white">Revenue Analytics</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <ResponsiveContainer width="100%" height={300}>
-              <AreaChart data={earningsData}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
-                <XAxis dataKey="month" stroke="#9CA3AF" />
-                <YAxis stroke="#9CA3AF" />
-                <Tooltip 
-                  contentStyle={{ 
-                    backgroundColor: '#1F2937', 
-                    border: '1px solid #374151',
-                    borderRadius: '8px'
-                  }}
-                />
-                <Area 
-                  type="monotone" 
-                  dataKey="earnings" 
-                  stroke="#10B981" 
-                  fill="#10B981" 
-                  fillOpacity={0.2}
-                />
-              </AreaChart>
-            </ResponsiveContainer>
-          </CardContent>
-        </Card>
-
-        <Card className="bg-gray-800/50 border-gray-700">
-          <CardHeader>
-            <div className="flex justify-between items-center">
-              <CardTitle className="text-white">Recent Orders</CardTitle>
-              <Button variant="outline" size="sm" onClick={() => setActiveTab('orders')}>View All</Button>
-            </div>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              {recentOrders.map(order => (
-                <div key={order.id} className="p-4 bg-gray-700/30 rounded-lg border border-gray-600">
-                  <div className="flex justify-between items-start mb-3">
-                    <div>
-                      <h3 className="font-semibold text-white">{order.product}</h3>
-                      <p className="text-gray-400 text-sm">Customer: {order.customer}</p>
-                    </div>
-                    <div className="text-right">
-                      <div className="text-green-400 font-bold">KES {order.amount.toLocaleString()}</div>
-                      <span className={`px-2 py-1 rounded text-xs ${
-                        order.status === 'processing' ? 'bg-yellow-600/20 text-yellow-400' :
-                        order.status === 'shipped' ? 'bg-purple-600/20 text-purple-400' :
-                        'bg-green-600/20 text-green-400'
-                      }`}>
-                        {order.status}
-                      </span>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
-      <div className="space-y-6">
-        <Card className="bg-gradient-to-br from-green-600/10 to-yellow-600/10 border-green-500/20">
-          <CardHeader>
-            <CardTitle className="text-white">This Month</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-3">
-              <div className="flex justify-between">
-                <span className="text-gray-400">Revenue:</span>
-                <span className="text-green-400 font-bold">KES {stats.monthlyEarnings.toLocaleString()}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-gray-400">Orders:</span>
-                <span className="font-semibold text-white">{stats.pendingOrders}</span>
-              </div>
-            </div>
-            <Button className="w-full mt-4 bg-green-600 hover:bg-green-700">
-              <Download className="w-4 h-4 mr-2" />
-              Withdraw to M-Pesa
-            </Button>
-          </CardContent>
-        </Card>
-
-        <Card className="bg-red-600/10 border-red-500/20">
-          <CardHeader>
-            <CardTitle className="text-white flex items-center gap-2">
-              <AlertCircle className="w-5 h-5 text-red-400" />
-              Stock Alerts
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-3">
-              {lowStockAlerts.map((alert, i) => (
-                <div key={i} className="p-3 bg-red-600/10 rounded-lg border border-red-500/20">
-                  <div className="text-sm font-medium text-white">{alert.product}</div>
-                  <div className="text-xs text-red-400">
-                    {alert.stock === 0 ? 'Out of stock' : `Only ${alert.stock} left`}
-                  </div>
-                </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-    </div>
-  )
-
-  const renderMyProducts = () => (
-    <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <h2 className="text-2xl font-bold">My Products</h2>
-        <Button 
-          onClick={() => setActiveTab('add-product')}
-          className="bg-purple-600 hover:bg-purple-700"
-        >
-          <Plus className="w-4 h-4 mr-2" />
-          Add Product
-        </Button>
-      </div>
-      
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {myProducts.map(product => (
-          <Card key={product.id} className="bg-gray-800/50 border-gray-700">
-            <CardContent className="p-6">
-              <div className="flex items-center gap-4 mb-4">
-                <div className="text-4xl">{product.image}</div>
-                <div className="flex-1">
-                  <h3 className="font-semibold text-white">{product.title}</h3>
-                  <p className="text-green-400 font-bold">KES {product.price.toLocaleString()}</p>
-                </div>
-              </div>
-              
-              <div className="space-y-2 mb-4">
-                <div className="flex justify-between text-sm">
-                  <span className="text-gray-400">Stock:</span>
-                  <span className={product.stock > 10 ? 'text-green-400' : product.stock > 0 ? 'text-yellow-400' : 'text-red-400'}>
-                    {product.stock}
-                  </span>
-                </div>
-                <div className="flex justify-between text-sm">
-                  <span className="text-gray-400">Orders:</span>
-                  <span className="text-white">{product.orders}</span>
-                </div>
-              </div>
-              
-              <div className="flex gap-2">
-                <Button variant="outline" size="sm" className="flex-1">
-                  <Edit className="w-4 h-4 mr-2" />
-                  Edit
-                </Button>
-                <Button variant="outline" size="sm" className="flex-1">
-                  <Eye className="w-4 h-4 mr-2" />
-                  View
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
-    </div>
-  )
-
-  const renderOrders = () => (
-    <div className="space-y-6">
-      <h2 className="text-2xl font-bold">Orders</h2>
-      
-      <div className="grid grid-cols-1 gap-4">
-        {recentOrders.map(order => (
-          <Card key={order.id} className="bg-gray-800/50 border-gray-700">
-            <CardContent className="p-6">
-              <div className="flex justify-between items-start mb-4">
-                <div>
-                  <h3 className="font-semibold text-white text-lg">{order.product}</h3>
-                  <p className="text-gray-400">Customer: {order.customer}</p>
-                  <p className="text-gray-500 text-sm">Order ID: {order.id}</p>
-                </div>
-                <div className="text-right">
-                  <div className="text-green-400 font-bold text-xl">KES {order.amount.toLocaleString()}</div>
-                  <span className={`px-3 py-1 rounded-full text-sm ${
-                    order.status === 'processing' ? 'bg-yellow-600/20 text-yellow-400' :
-                    order.status === 'shipped' ? 'bg-purple-600/20 text-purple-400' :
-                    'bg-green-600/20 text-green-400'
-                  }`}>
-                    {order.status}
-                  </span>
-                </div>
-              </div>
-              
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-4 text-sm text-gray-400">
-                  <div className="flex items-center gap-2">
-                    <Clock className="w-4 h-4" />
-                    {order.date}
-                  </div>
-                  <div>Qty: {order.quantity}</div>
-                </div>
-                
-                <div className="flex gap-2">
-                  <Button variant="outline" size="sm">View Details</Button>
-                  <Button size="sm" className="bg-purple-600 hover:bg-purple-700">Update Status</Button>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
-    </div>
-  )
-
-  const renderAnalytics = () => (
-    <div className="space-y-6">
-      <h2 className="text-2xl font-bold">Analytics</h2>
-      
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <Card className="bg-gray-800/50 border-gray-700">
-          <CardHeader>
-            <CardTitle className="text-white">Revenue Trend</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <ResponsiveContainer width="100%" height={300}>
-              <AreaChart data={earningsData}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
-                <XAxis dataKey="month" stroke="#9CA3AF" />
-                <YAxis stroke="#9CA3AF" />
-                <Tooltip />
-                <Area type="monotone" dataKey="earnings" stroke="#10B981" fill="#10B981" fillOpacity={0.2} />
-              </AreaChart>
-            </ResponsiveContainer>
-          </CardContent>
-        </Card>
-
-        <Card className="bg-gray-800/50 border-gray-700">
-          <CardHeader>
-            <CardTitle className="text-white">Product Performance</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <ResponsiveContainer width="100%" height={300}>
-              <BarChart data={productPerformance}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
-                <XAxis dataKey="product" stroke="#9CA3AF" />
-                <YAxis stroke="#9CA3AF" />
-                <Tooltip />
-                <Bar dataKey="revenue" fill="#EAB308" />
-              </BarChart>
-            </ResponsiveContainer>
-          </CardContent>
-        </Card>
-      </div>
-    </div>
-  )
-
-  const renderMessages = () => (
-    <div className="space-y-6">
-      <h2 className="text-2xl font-bold">Messages</h2>
-      
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 h-[calc(100vh-300px)]">
-        <Card className="bg-gray-800/50 border-gray-700">
-          <CardHeader>
-            <CardTitle className="text-white">Conversations</CardTitle>
-          </CardHeader>
-          <CardContent className="p-0">
-            <div className="space-y-2 p-4">
-              {[1, 2, 3, 4, 5].map(i => (
-                <div key={i} className="p-3 hover:bg-gray-700/50 rounded-lg cursor-pointer">
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 bg-purple-600 rounded-full flex items-center justify-center">
-                      <span className="text-white font-bold">C{i}</span>
-                    </div>
-                    <div className="flex-1">
-                      <h4 className="font-medium text-white">Customer {i}</h4>
-                      <p className="text-sm text-gray-400">Last message...</p>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-
-        <div className="lg:col-span-2">
-          <Card className="bg-gray-800/50 border-gray-700 h-full">
-            <CardContent className="flex items-center justify-center h-full">
-              <div className="text-center text-gray-400">
-                <MessageCircle className="w-16 h-16 mx-auto mb-4" />
-                <p>Choose a conversation to start messaging</p>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-      </div>
-    </div>
-  )
-
-  if (!session) {
+  if (loading) {
     return (
       <div className="min-h-screen bg-black text-white flex items-center justify-center">
-        <div className="text-center">
-          <h1 className="text-2xl font-bold mb-4">Please sign in to access seller dashboard</h1>
-        </div>
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-500"></div>
       </div>
     )
   }
 
   return (
-    <div className="min-h-screen bg-black text-white">
-      <div className="fixed left-0 top-0 h-full w-64 bg-gray-900 border-r border-gray-800 z-40 overflow-y-auto">
-        <div className="p-4 border-b border-gray-800">
-          <div className="flex items-center gap-3 mb-3">
-            <div className="w-12 h-12 bg-gradient-to-r from-purple-600 to-pink-600 rounded-full flex items-center justify-center">
+    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 text-white">
+      {/* Sidebar */}
+      <div className="fixed left-0 top-0 h-full w-64 bg-slate-800/90 backdrop-blur-xl border-r border-slate-700/50 z-40 overflow-y-auto shadow-2xl">
+        <div className="p-6 border-b border-slate-700/50">
+          <div className="flex items-center gap-3">
+            <div className="w-12 h-12 bg-gradient-to-r from-emerald-500 to-teal-500 rounded-xl flex items-center justify-center shadow-lg">
               <span className="text-lg font-bold text-white">{session?.user?.name?.[0] || 'S'}</span>
             </div>
             <div>
               <h3 className="font-semibold text-white">{session?.user?.name || 'Seller'}</h3>
-              <p className="text-sm text-gray-400">{session?.user?.email}</p>
+              <p className="text-sm text-slate-400">Seller Dashboard</p>
             </div>
           </div>
         </div>
         
-        <nav className="p-4 space-y-2 flex-1">
+        <nav className="p-6 space-y-3">
           {[
             { id: 'overview', label: 'Overview', icon: TrendingUp },
-            { id: 'products', label: 'My Products', icon: Package },
-            { id: 'add-product', label: 'Add Product', icon: Plus },
-            { id: 'orders', label: 'Orders', icon: ShoppingCart },
-            { id: 'analytics', label: 'Analytics', icon: BarChart3 },
-            { id: 'messages', label: 'Messages', icon: MessageCircle, badge: 5 }
+            { id: 'gigs', label: 'My Gigs', icon: Package },
+            { id: 'products', label: 'My Products', icon: ShoppingCart },
+            { id: 'orders', label: 'Orders', icon: Store },
+            { id: 'create', label: 'Create Gig', icon: Plus }
           ].map(item => {
             const Icon = item.icon
             return (
               <button
                 key={item.id}
                 onClick={() => setActiveTab(item.id)}
-                className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-left transition-colors ${
+                className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-left transition-all duration-200 ${
                   activeTab === item.id
-                    ? 'bg-purple-600 text-white'
-                    : 'text-gray-300 hover:bg-gray-800 hover:text-white'
+                    ? 'bg-gradient-to-r from-emerald-500 to-teal-500 text-white shadow-lg transform scale-105'
+                    : 'text-slate-300 hover:bg-slate-700/50 hover:text-white hover:transform hover:scale-105'
                 }`}
               >
                 <Icon className="w-5 h-5" />
-                <span className="flex-1">{item.label}</span>
-                {item.badge && (
-                  <span className="bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
-                    {item.badge}
-                  </span>
-                )}
+                <span className="font-medium">{item.label}</span>
               </button>
             )
           })}
         </nav>
-        
-        <div className="p-4 space-y-2 border-t border-gray-800">
-          <button className="w-full flex items-center gap-3 px-3 py-2 text-gray-300 hover:bg-gray-800 hover:text-white rounded-lg transition-colors">
-            <Settings className="w-5 h-5" />
-            <span>Settings</span>
-          </button>
-          <button onClick={handleSignOut} className="w-full flex items-center gap-3 px-3 py-2 text-gray-300 hover:bg-gray-800 hover:text-white rounded-lg transition-colors">
+
+        {/* Sign Out Button */}
+        <div className="absolute bottom-6 left-6 right-6">
+          <button
+            onClick={handleSignOut}
+            className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-slate-300 hover:bg-red-500/20 hover:text-red-400 transition-all duration-200 border border-slate-700/50 hover:border-red-500/50"
+          >
             <LogOut className="w-5 h-5" />
-            <span>Sign Out</span>
+            <span className="font-medium">Sign Out</span>
           </button>
         </div>
       </div>
-      
-      <div className="ml-64">
-        <header className="bg-gray-900 border-b border-gray-800 sticky top-0 z-30">
-          <div className="max-w-7xl mx-auto px-4 py-4">
+
+      {/* Main Content */}
+      <div className="ml-64 min-h-screen">
+        <div className="p-8">
+        {activeTab === 'overview' && (
+          <div className="space-y-8">
             <div className="flex items-center justify-between">
-              <h1 className="text-2xl font-bold">
-                <span className="bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">
-                  Seller Dashboard
-                </span>
-              </h1>
-              
-              <div className="flex items-center gap-4">
-                <button className="relative p-2 hover:bg-gray-800 rounded-lg transition-colors">
-                  <Bell className="w-5 h-5" />
-                  <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full w-4 h-4 flex items-center justify-center">3</span>
+              <h1 className="text-4xl font-bold bg-gradient-to-r from-emerald-400 to-teal-400 bg-clip-text text-transparent">Seller Overview</h1>
+              <div className="text-sm text-slate-400">
+                Welcome back, {session?.user?.name}!
+              </div>
+            </div>
+            
+            {/* Stats Cards */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+              <div className="bg-gradient-to-br from-emerald-500 to-teal-500 p-6 rounded-2xl shadow-xl border border-emerald-400/20">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-emerald-100 text-sm font-medium">Total Earnings</p>
+                    <p className="text-3xl font-bold text-white mt-1">KES {stats.totalEarnings.toLocaleString()}</p>
+                  </div>
+                  <div className="p-3 bg-white/20 rounded-xl">
+                    <DollarSign className="w-8 h-8 text-white" />
+                  </div>
+                </div>
+              </div>
+              <div className="bg-gradient-to-br from-blue-500 to-cyan-500 p-6 rounded-2xl shadow-xl border border-blue-400/20">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-blue-100 text-sm font-medium">Active Gigs</p>
+                    <p className="text-3xl font-bold text-white mt-1">{stats.activeGigs}</p>
+                  </div>
+                  <div className="p-3 bg-white/20 rounded-xl">
+                    <Package className="w-8 h-8 text-white" />
+                  </div>
+                </div>
+              </div>
+              <div className="bg-gradient-to-br from-purple-500 to-pink-500 p-6 rounded-2xl shadow-xl border border-purple-400/20">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-purple-100 text-sm font-medium">Active Products</p>
+                    <p className="text-3xl font-bold text-white mt-1">{stats.activeProducts}</p>
+                  </div>
+                  <div className="p-3 bg-white/20 rounded-xl">
+                    <ShoppingCart className="w-8 h-8 text-white" />
+                  </div>
+                </div>
+              </div>
+              <div className="bg-gradient-to-br from-orange-500 to-red-500 p-6 rounded-2xl shadow-xl border border-orange-400/20">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-orange-100 text-sm font-medium">Completed Orders</p>
+                    <p className="text-3xl font-bold text-white mt-1">{stats.completedOrders}</p>
+                  </div>
+                  <div className="p-3 bg-white/20 rounded-xl">
+                    <Store className="w-8 h-8 text-white" />
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Recent Activity */}
+            <div className="bg-slate-800/50 backdrop-blur-xl rounded-2xl p-6 border border-slate-700/50 shadow-xl">
+              <h3 className="text-2xl font-semibold mb-6 text-white">Recent Orders</h3>
+              <div className="space-y-4">
+                {orders.slice(0, 5).map(order => (
+                  <div key={order.id} className="flex items-center justify-between p-4 bg-slate-700/30 rounded-xl border border-slate-600/30 hover:bg-slate-700/50 transition-all duration-200">
+                    <div>
+                      <p className="font-medium text-white">{order.gig?.title || order.product?.title || 'Order'}</p>
+                      <p className="text-sm text-slate-400">Order #{order.id.slice(0, 8)}</p>
+                    </div>
+                    <div className="text-right">
+                      <p className="font-bold text-emerald-400 text-lg">KES {order.totalAmount?.toLocaleString()}</p>
+                      <span className={`px-3 py-1 text-xs font-medium rounded-full ${
+                        order.status === 'COMPLETED' ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30' :
+                        order.status === 'IN_PROGRESS' ? 'bg-yellow-500/20 text-yellow-400 border border-yellow-500/30' : 
+                        'bg-slate-500/20 text-slate-400 border border-slate-500/30'
+                      }`}>
+                        {order.status.replace('_', ' ')}
+                      </span>
+                    </div>
+                  </div>
+                ))}
+                {orders.length === 0 && (
+                  <div className="text-center py-8 text-slate-400">
+                    <Store className="w-12 h-12 mx-auto mb-3 opacity-50" />
+                    <p>No orders yet. Start promoting your gigs!</p>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {activeTab === 'gigs' && (
+          <div className="space-y-8">
+            <div className="flex items-center justify-between">
+              <h1 className="text-4xl font-bold bg-gradient-to-r from-emerald-400 to-teal-400 bg-clip-text text-transparent">My Gigs</h1>
+              <button
+                onClick={() => router.push('/create-gig')}
+                className="bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 px-6 py-3 rounded-xl flex items-center gap-2 font-medium transition-all duration-200 shadow-lg hover:shadow-xl transform hover:scale-105"
+              >
+                <Plus className="w-5 h-5" />
+                Create New Gig
+              </button>
+            </div>
+
+            {gigs.length === 0 ? (
+              <div className="text-center py-16 bg-slate-800/30 rounded-2xl border border-slate-700/50">
+                <Package className="w-20 h-20 text-slate-400 mx-auto mb-6 opacity-50" />
+                <h3 className="text-2xl font-semibold text-slate-300 mb-3">No Gigs Yet</h3>
+                <p className="text-slate-400 mb-6 max-w-md mx-auto">Create your first gig to start earning and showcase your skills to potential clients</p>
+                <button
+                  onClick={() => router.push('/create-gig')}
+                  className="bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 px-8 py-4 rounded-xl flex items-center gap-2 mx-auto font-medium transition-all duration-200 shadow-lg hover:shadow-xl transform hover:scale-105"
+                >
+                  <Plus className="w-5 h-5" />
+                  Create Your First Gig
                 </button>
-                
-                <Button className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700" onClick={() => setActiveTab('add-product')}>
-                  <Plus className="w-4 h-4 mr-2" />
-                  Add Product
-                </Button>
               </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {gigs.map(gig => (
+                  <div key={gig.id} className="bg-slate-800/50 backdrop-blur-xl border border-slate-700/50 rounded-2xl overflow-hidden shadow-xl hover:shadow-2xl transition-all duration-300 hover:transform hover:scale-105">
+                    <div className="h-48 bg-gradient-to-br from-emerald-500/20 to-teal-500/20 flex items-center justify-center relative overflow-hidden">
+                      {gig.images?.[0] ? (
+                        <img src={gig.images[0]} alt={gig.title} className="w-full h-full object-cover" />
+                      ) : (
+                        <Eye className="w-16 h-16 text-slate-400 opacity-50" />
+                      )}
+                      <div className="absolute inset-0 bg-gradient-to-t from-slate-900/50 to-transparent" />
+                    </div>
+                    <div className="p-6">
+                      <h3 className="font-bold text-white text-xl mb-3 line-clamp-1">{gig.title}</h3>
+                      <p className="text-slate-400 text-sm mb-4 line-clamp-2 leading-relaxed">{gig.description}</p>
+                      <div className="flex items-center justify-between mb-6">
+                        <span className="text-2xl font-bold text-emerald-400">KES {gig.price?.toLocaleString()}</span>
+                        <span className="text-sm text-slate-400 bg-slate-700/50 px-3 py-1 rounded-full">{gig.orderCount || 0} orders</span>
+                      </div>
+                      <div className="flex gap-3">
+                        <button className="flex-1 px-4 py-3 bg-blue-500/20 hover:bg-blue-500/30 border border-blue-500/30 hover:border-blue-500/50 rounded-xl text-blue-400 font-medium transition-all duration-200 flex items-center justify-center gap-2">
+                          <Edit className="w-4 h-4" />
+                          Edit
+                        </button>
+                        <button 
+                          onClick={() => deleteGig(gig.id)}
+                          className="px-4 py-3 bg-red-500/20 hover:bg-red-500/30 border border-red-500/30 hover:border-red-500/50 rounded-xl text-red-400 font-medium transition-all duration-200"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
+        {activeTab === 'products' && (
+          <div className="space-y-6">
+            <div className="flex items-center justify-between">
+              <h1 className="text-3xl font-bold">My Products</h1>
+              <button 
+                onClick={() => router.push('/create-product')}
+                className="bg-purple-600 hover:bg-purple-700 px-4 py-2 rounded-lg flex items-center gap-2"
+              >
+                <Plus className="w-4 h-4" />
+                Add Product
+              </button>
+            </div>
+            
+            {products.length === 0 ? (
+              <div className="text-center py-12">
+                <ShoppingCart className="w-16 h-16 text-gray-400 mx-auto mb-4" />
+                <h3 className="text-xl font-semibold text-gray-300 mb-2">No Products Yet</h3>
+                <p className="text-gray-400 mb-4">Start selling digital products to your customers</p>
+                <button
+                  onClick={() => router.push('/create-product')}
+                  className="bg-purple-600 hover:bg-purple-700 px-6 py-3 rounded-lg flex items-center gap-2 mx-auto"
+                >
+                  <Plus className="w-4 h-4" />
+                  Add Your First Product
+                </button>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {products.map(product => (
+                  <div key={product.id} className="bg-gray-800 border border-gray-700 rounded-xl overflow-hidden">
+                    <div className="h-48 bg-gradient-to-br from-green-600/20 to-blue-600/20 flex items-center justify-center">
+                      {product.images?.[0] ? (
+                        <img src={product.images[0]} alt={product.title} className="w-full h-full object-cover" />
+                      ) : (
+                        <ShoppingCart className="w-12 h-12 text-gray-400" />
+                      )}
+                    </div>
+                    <div className="p-4">
+                      <h3 className="font-semibold text-white text-lg mb-2">{product.title}</h3>
+                      <p className="text-gray-400 text-sm mb-3 line-clamp-2">{product.description}</p>
+                      <div className="flex items-center justify-between mb-4">
+                        <span className="text-xl font-bold text-green-400">KES {product.price?.toLocaleString()}</span>
+                        <span className="text-sm text-gray-400">{product.stock || 0} in stock</span>
+                      </div>
+                      <div className="flex gap-2">
+                        <button className="flex-1 px-3 py-2 bg-blue-600 hover:bg-blue-700 rounded-lg text-sm font-medium transition-colors flex items-center justify-center gap-1">
+                          <Edit className="w-4 h-4" />
+                          Edit
+                        </button>
+                        <button 
+                          onClick={() => deleteProduct(product.id)}
+                          className="px-3 py-2 bg-red-600 hover:bg-red-700 rounded-lg text-sm font-medium transition-colors"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
+        {activeTab === 'orders' && (
+          <div className="space-y-8">
+            <h1 className="text-4xl font-bold bg-gradient-to-r from-emerald-400 to-teal-400 bg-clip-text text-transparent">Orders</h1>
+            
+            {orders.length === 0 ? (
+              <div className="text-center py-16 bg-slate-800/30 rounded-2xl border border-slate-700/50">
+                <Store className="w-20 h-20 text-slate-400 mx-auto mb-6 opacity-50" />
+                <h3 className="text-2xl font-semibold text-slate-300 mb-3">No Orders Yet</h3>
+                <p className="text-slate-400 max-w-md mx-auto">Orders will appear here when customers purchase your gigs or products. Start promoting your services!</p>
+              </div>
+            ) : (
+              <div className="bg-slate-800/50 backdrop-blur-xl rounded-2xl overflow-hidden border border-slate-700/50 shadow-xl">
+                <div className="overflow-x-auto">
+                  <table className="w-full">
+                    <thead className="bg-slate-700/50">
+                      <tr>
+                        <th className="px-6 py-4 text-left text-sm font-semibold text-slate-300 uppercase tracking-wider">Order</th>
+                        <th className="px-6 py-4 text-left text-sm font-semibold text-slate-300 uppercase tracking-wider">Buyer</th>
+                        <th className="px-6 py-4 text-left text-sm font-semibold text-slate-300 uppercase tracking-wider">Amount</th>
+                        <th className="px-6 py-4 text-left text-sm font-semibold text-slate-300 uppercase tracking-wider">Status</th>
+                        <th className="px-6 py-4 text-left text-sm font-semibold text-slate-300 uppercase tracking-wider">Date</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-700/50">
+                      {orders.map(order => (
+                        <tr key={order.id} className="hover:bg-slate-700/30 transition-colors duration-200">
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <div>
+                              <div className="text-sm font-semibold text-white">{order.gig?.title || order.product?.title || 'Order'}</div>
+                              <div className="text-sm text-slate-400">#{order.id.slice(0, 8)}</div>
+                            </div>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-300 font-medium">{order.buyer?.name || 'Unknown'}</td>
+                          <td className="px-6 py-4 whitespace-nowrap text-lg font-bold text-emerald-400">
+                            KES {order.totalAmount?.toLocaleString()}
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <span className={`px-3 py-1 text-xs font-semibold rounded-full border ${
+                              order.status === 'COMPLETED' ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30' :
+                              order.status === 'IN_PROGRESS' ? 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30' :
+                              'bg-slate-500/20 text-slate-400 border-slate-500/30'
+                            }`}>
+                              {order.status.replace('_', ' ')}
+                            </span>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-400">
+                            {new Date(order.createdAt).toLocaleDateString()}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
+        {activeTab === 'create' && (
+          <div className="space-y-6">
+            <h1 className="text-3xl font-bold">Create New Gig</h1>
+            <div className="bg-gray-800 rounded-xl p-6 text-center">
+              <Package className="w-16 h-16 text-gray-400 mx-auto mb-4" />
+              <h3 className="text-xl font-semibold text-gray-300 mb-2">Gig Creation</h3>
+              <p className="text-gray-400 mb-4">Use the dedicated gig creation page for the full experience</p>
+              <button
+                onClick={() => router.push('/create-gig')}
+                className="bg-purple-600 hover:bg-purple-700 px-6 py-3 rounded-lg flex items-center gap-2 mx-auto"
+              >
+                <Plus className="w-4 h-4" />
+                Go to Gig Creator
+              </button>
             </div>
           </div>
-        </header>
-
-        <main className="max-w-7xl mx-auto px-4 py-8">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-            <div className="bg-gradient-to-r from-purple-600 to-pink-600 p-6 rounded-xl">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-purple-100">Total Revenue</p>
-                  <p className="text-2xl font-bold text-white">KES {stats.totalEarnings.toLocaleString()}</p>
-                </div>
-                <DollarSign className="w-8 h-8 text-purple-200" />
-              </div>
-            </div>
-            <div className="bg-gradient-to-r from-blue-600 to-cyan-600 p-6 rounded-xl">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-blue-100">Total Orders</p>
-                  <p className="text-2xl font-bold text-white">{stats.totalOrders}</p>
-                </div>
-                <ShoppingCart className="w-8 h-8 text-blue-200" />
-              </div>
-            </div>
-            <div className="bg-gradient-to-r from-green-600 to-emerald-600 p-6 rounded-xl">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-green-100">Active Products</p>
-                  <p className="text-2xl font-bold text-white">{stats.activeProducts}</p>
-                </div>
-                <Package className="w-8 h-8 text-green-200" />
-              </div>
-            </div>
-            <div className="bg-gradient-to-r from-orange-600 to-red-600 p-6 rounded-xl">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-orange-100">Average Rating</p>
-                  <p className="text-2xl font-bold text-white">{stats.avgRating}/5</p>
-                </div>
-                <Star className="w-8 h-8 text-orange-200" />
-              </div>
-            </div>
-          </div>
-
-          {renderContent()}
-        </main>
+        )}
+        </div>
       </div>
     </div>
   )

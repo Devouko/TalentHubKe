@@ -1,30 +1,12 @@
-/**
- * Tailwind CSS Configuration
- * 
- * Extends Tailwind CSS with:
- * - Custom color system using CSS variables
- * - Theme-aware colors for light/dark mode
- * - Custom animations and keyframes
- * - Typography and spacing customizations
- * 
- * The color system integrates with CSS custom properties
- * defined in globals.css for seamless theme switching.
- */
-
 /** @type {import('tailwindcss').Config} */
 module.exports = {
-  // Enable dark mode using class strategy
   darkMode: ["class"],
-  
-  // Content paths for Tailwind to scan
   content: [
     './src/pages/**/*.{js,ts,jsx,tsx,mdx}',
     './src/components/**/*.{js,ts,jsx,tsx,mdx}',
     './src/app/**/*.{js,ts,jsx,tsx,mdx}',
   ],
-  
   theme: {
-    // Container configuration
     container: {
       center: true,
       padding: "2rem",
@@ -32,9 +14,10 @@ module.exports = {
         "2xl": "1400px",
       },
     },
-    
     extend: {
-      // Custom colors using CSS variables
+      fontFamily: {
+        sans: ['Inter', 'system-ui', '-apple-system', 'sans-serif'],
+      },
       colors: {
         border: "hsl(var(--border))",
         input: "hsl(var(--input))",
@@ -69,23 +52,20 @@ module.exports = {
           DEFAULT: "hsl(var(--card))",
           foreground: "hsl(var(--card-foreground))",
         },
+        success: {
+          DEFAULT: "hsl(var(--success))",
+          foreground: "hsl(var(--success-foreground))",
+        },
+        warning: {
+          DEFAULT: "hsl(var(--warning))",
+          foreground: "hsl(var(--warning-foreground))",
+        },
       },
-      
-      // Border radius values
       borderRadius: {
         lg: "var(--radius)",
         md: "calc(var(--radius) - 2px)",
         sm: "calc(var(--radius) - 4px)",
       },
-      
-      // Existing gradient configurations
-      backgroundImage: {
-        'gradient-radial': 'radial-gradient(var(--tw-gradient-stops))',
-        'gradient-conic':
-          'conic-gradient(from 180deg at 50% 50%, var(--tw-gradient-stops))',
-      },
-      
-      // Custom keyframes for animations
       keyframes: {
         "accordion-down": {
           from: { height: "0" },
@@ -95,16 +75,27 @@ module.exports = {
           from: { height: "var(--radix-accordion-content-height)" },
           to: { height: "0" },
         },
+        "fade-in": {
+          from: { opacity: "0", transform: "translateY(10px)" },
+          to: { opacity: "1", transform: "translateY(0)" },
+        },
+        "slide-in": {
+          from: { transform: "translateX(-100%)" },
+          to: { transform: "translateX(0)" },
+        },
       },
-      
-      // Custom animations
       animation: {
         "accordion-down": "accordion-down 0.2s ease-out",
         "accordion-up": "accordion-up 0.2s ease-out",
+        "fade-in": "fade-in 0.3s ease-out",
+        "slide-in": "slide-in 0.3s ease-out",
+      },
+      boxShadow: {
+        'soft': '0 2px 8px 0 rgb(0 0 0 / 0.04)',
+        'medium': '0 4px 16px 0 rgb(0 0 0 / 0.08)',
+        'large': '0 8px 32px 0 rgb(0 0 0 / 0.12)',
       },
     },
   },
-  
-  // Tailwind plugins
   plugins: [],
 }

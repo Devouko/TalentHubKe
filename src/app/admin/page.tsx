@@ -5,10 +5,14 @@ import { useSession, signOut } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
 import { BarChart3, Users, ShoppingCart, DollarSign, TrendingUp, MessageCircle } from 'lucide-react'
 import AdminSidebarLayout from './AdminSidebarLayout'
+import TradeCharts from '@/components/admin/TradeCharts'
+import RealtimeMessaging from '@/components/admin/RealtimeMessaging'
 
 export default function AdminPage() {
   const { data: session, status } = useSession()
   const router = useRouter()
+  const [stats, setStats] = useState(null)
+  const [loading, setLoading] = useState(true)
 
   useEffect(() => {
     if (status === 'loading') return
@@ -20,10 +24,63 @@ export default function AdminPage() {
       router.push('/dashboard')
       return
     }
+    fetchStats()
   }, [session, status, router])
 
-  if (status === 'loading') {
-    return <div>Loading...</div>
+  const fetchStats = async () => {
+    try {
+      const response = await fetch('/api/admin/stats')
+      if (response.ok) {
+        const data = await response.json()
+        setStats(data)
+      }
+    } catch (error) {
+      console.error('Error fetching stats:', error)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const formatTime = (timestamp) => {
+    const date = new Date(timestamp)
+    const now = new Date()
+    const diffInMinutes = (now - date) / (1000 * 60)
+    
+    if (diffInMinutes < 60) {
+      return `${Math.floor(diffInMinutes)} min ago`
+    } else if (diffInMinutes < 1440) {
+      return `${Math.floor(diffInMinutes / 60)} hr ago`
+    } else {
+      return `${Math.floor(diffInMinutes / 1440)} day ago`
+    }
+  }
+
+  const getActivityIcon = (type) => {
+    switch (type) {
+      case 'user': return <Users className="w-5 h-5 text-white" />
+      case 'order': return <DollarSign className="w-5 h-5 text-white" />
+      case 'gig': return <ShoppingCart className="w-5 h-5 text-white" />
+      default: return <BarChart3 className="w-5 h-5 text-white" />
+    }
+  }
+
+  const getActivityColor = (type) => {
+    switch (type) {
+      case 'user': return 'bg-purple-600'
+      case 'order': return 'bg-green-600'
+      case 'gig': return 'bg-blue-600'
+      default: return 'bg-gray-600'
+    }
+  }
+
+  if (status === 'loading' || loading) {
+    return (
+      <AdminSidebarLayout>
+        <div className="min-h-screen bg-black text-white flex items-center justify-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-500"></div>
+        </div>
+      </AdminSidebarLayout>
+    )
   }
 
   if (!session || session.user?.userType !== 'ADMIN') {
@@ -46,7 +103,7 @@ export default function AdminPage() {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-purple-100">Total Users</p>
-                  <p className="text-2xl font-bold text-white">1,247</p>
+                  <p className="text-2xl font-bold text-white">{stats?.totalUsers || 0}</p>
                 </div>
                 <Users className="w-8 h-8 text-purple-200" />
               </div>
@@ -55,7 +112,7 @@ export default function AdminPage() {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-blue-100">Active Gigs</p>
-                  <p className="text-2xl font-bold text-white">89</p>
+                  <p className="text-2xl font-bold text-white">{stats?.activeGigs || 0}</p>
                 </div>
                 <ShoppingCart className="w-8 h-8 text-blue-200" />
               </div>
@@ -64,7 +121,7 @@ export default function AdminPage() {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-green-100">Total Revenue</p>
-                  <p className="text-2xl font-bold text-white">KES 450K</p>
+                  <p className="text-2xl font-bold text-white">KES {(stats?.totalRevenue || 0).toLocaleString()}</p>
                 </div>
                 <DollarSign className="w-8 h-8 text-green-200" />
               </div>
@@ -72,13 +129,17 @@ export default function AdminPage() {
             <div className="bg-gradient-to-r from-orange-600 to-red-600 p-6 rounded-xl">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-orange-100">Orders</p>
-                  <p className="text-2xl font-bold text-white">156</p>
+                  <p className="text-orange-100">Total Orders</p>
+                  <p className="text-2xl font-bold text-white">{stats?.totalOrders || 0}</p>
                 </div>
                 <TrendingUp className="w-8 h-8 text-orange-200" />
               </div>
             </div>
           </div>
+
+          <TradeCharts />
+
+          <RealtimeMessaging />
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <div className="bg-gray-800 rounded-xl p-6">
@@ -87,36 +148,23 @@ export default function AdminPage() {
                 Recent Activity
               </h3>
               <div className="space-y-4">
-                <div className="flex items-center gap-4 p-3 bg-gray-700 rounded-lg">
-                  <div className="w-10 h-10 bg-purple-600 rounded-full flex items-center justify-center">
-                    <Users className="w-5 h-5 text-white" />
+                {stats?.recentActivity?.slice(0, 5).map((activity, index) => (
+                  <div key={index} className="flex items-center gap-4 p-3 bg-gray-700 rounded-lg">
+                    <div className={`w-10 h-10 ${getActivityColor(activity.type)} rounded-full flex items-center justify-center`}>
+                      {getActivityIcon(activity.type)}
+                    </div>
+                    <div className="flex-1">
+                      <p className="text-white font-medium">{activity.title}</p>
+                      <p className="text-gray-400 text-sm">{activity.description}</p>
+                    </div>
+                    <span className="text-gray-400 text-sm">{formatTime(activity.time)}</span>
                   </div>
-                  <div className="flex-1">
-                    <p className="text-white font-medium">New user registered</p>
-                    <p className="text-gray-400 text-sm">John Doe joined the platform</p>
+                )) || (
+                  <div className="text-center text-gray-400 py-8">
+                    <BarChart3 className="w-12 h-12 mx-auto mb-2 opacity-50" />
+                    <p>No recent activity</p>
                   </div>
-                  <span className="text-gray-400 text-sm">2 min ago</span>
-                </div>
-                <div className="flex items-center gap-4 p-3 bg-gray-700 rounded-lg">
-                  <div className="w-10 h-10 bg-green-600 rounded-full flex items-center justify-center">
-                    <DollarSign className="w-5 h-5 text-white" />
-                  </div>
-                  <div className="flex-1">
-                    <p className="text-white font-medium">Payment received</p>
-                    <p className="text-gray-400 text-sm">KES 15,000 from order #1234</p>
-                  </div>
-                  <span className="text-gray-400 text-sm">5 min ago</span>
-                </div>
-                <div className="flex items-center gap-4 p-3 bg-gray-700 rounded-lg">
-                  <div className="w-10 h-10 bg-blue-600 rounded-full flex items-center justify-center">
-                    <ShoppingCart className="w-5 h-5 text-white" />
-                  </div>
-                  <div className="flex-1">
-                    <p className="text-white font-medium">New gig created</p>
-                    <p className="text-gray-400 text-sm">Logo design service added</p>
-                  </div>
-                  <span className="text-gray-400 text-sm">10 min ago</span>
-                </div>
+                )}
               </div>
             </div>
 
@@ -128,23 +176,23 @@ export default function AdminPage() {
               <div className="space-y-4">
                 <div className="flex items-center justify-between">
                   <span className="text-gray-300">Pending Orders</span>
-                  <span className="text-yellow-400 font-semibold">23</span>
+                  <span className="text-yellow-400 font-semibold">{stats?.pendingOrders || 0}</span>
                 </div>
                 <div className="flex items-center justify-between">
                   <span className="text-gray-300">Completed Orders</span>
-                  <span className="text-green-400 font-semibold">156</span>
+                  <span className="text-green-400 font-semibold">{stats?.completedOrders || 0}</span>
                 </div>
                 <div className="flex items-center justify-between">
                   <span className="text-gray-300">Active Sellers</span>
-                  <span className="text-blue-400 font-semibold">45</span>
+                  <span className="text-blue-400 font-semibold">{stats?.activeSellers || 0}</span>
                 </div>
                 <div className="flex items-center justify-between">
-                  <span className="text-gray-300">Total Products</span>
-                  <span className="text-purple-400 font-semibold">89</span>
+                  <span className="text-gray-300">Total Gigs</span>
+                  <span className="text-purple-400 font-semibold">{stats?.activeGigs || 0}</span>
                 </div>
                 <div className="flex items-center justify-between">
-                  <span className="text-gray-300">Support Tickets</span>
-                  <span className="text-red-400 font-semibold">12</span>
+                  <span className="text-gray-300">Platform Users</span>
+                  <span className="text-cyan-400 font-semibold">{stats?.totalUsers || 0}</span>
                 </div>
               </div>
             </div>

@@ -7,6 +7,10 @@ export default function JobsPage() {
   const { data: session } = useSession();
   const [jobs, setJobs] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [showModal, setShowModal] = useState(false);
+  const [selectedJob, setSelectedJob] = useState(null);
+  const [proposal, setProposal] = useState({ title: '', description: '', budget: '', timeline: '' });
+  const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
     fetchJobs();
@@ -21,6 +25,47 @@ export default function JobsPage() {
       console.error('Error fetching jobs:', error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleApply = (job) => {
+    setSelectedJob(job);
+    setProposal({ 
+      title: `Application for ${job.title}`, 
+      description: '', 
+      budget: job.price.toString(), 
+      timeline: job.deliveryTime.toString() 
+    });
+    setShowModal(true);
+  };
+
+  const submitProposal = async (e) => {
+    e.preventDefault();
+    if (!session?.user?.id) return;
+    
+    setSubmitting(true);
+    try {
+      const response = await fetch('/api/projects', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          projectId: selectedJob.id,
+          ...proposal
+        })
+      });
+      
+      if (response.ok) {
+        setShowModal(false);
+        setProposal({ title: '', description: '', budget: '', timeline: '' });
+        alert('Application submitted successfully!');
+      } else {
+        alert('Failed to submit application');
+      }
+    } catch (error) {
+      console.error('Error submitting proposal:', error);
+      alert('Error submitting application');
+    } finally {
+      setSubmitting(false);
     }
   };
 
@@ -150,19 +195,21 @@ export default function JobsPage() {
               )}
 
               <button
+                onClick={() => handleApply(job)}
+                disabled={!session}
                 style={{
                   width: '100%',
-                  backgroundColor: 'var(--secondary)',
+                  backgroundColor: session ? 'var(--secondary)' : 'var(--neutral)',
                   color: 'var(--primary)',
                   padding: '0.75rem',
                   border: 'none',
                   borderRadius: '8px',
                   fontSize: '0.9rem',
                   fontWeight: 'bold',
-                  cursor: 'pointer'
+                  cursor: session ? 'pointer' : 'not-allowed'
                 }}
               >
-                View Details
+                {session ? 'Apply to Job' : 'Login to Apply'}
               </button>
             </div>
           ))}
@@ -179,6 +226,138 @@ export default function JobsPage() {
           </div>
         )}
       </div>
+
+      {showModal && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          backgroundColor: 'rgba(0,0,0,0.8)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 1000
+        }}>
+          <div style={{
+            backgroundColor: 'var(--primary)',
+            padding: '2rem',
+            borderRadius: '16px',
+            width: '90%',
+            maxWidth: '500px',
+            border: '1px solid var(--neutral)'
+          }}>
+            <h2 style={{ color: 'var(--text-primary)', marginBottom: '1rem' }}>Apply to Job</h2>
+            <form onSubmit={submitProposal}>
+              <div style={{ marginBottom: '1rem' }}>
+                <label style={{ color: 'var(--text-primary)', display: 'block', marginBottom: '0.5rem' }}>Title</label>
+                <input
+                  type="text"
+                  value={proposal.title}
+                  onChange={(e) => setProposal({...proposal, title: e.target.value})}
+                  style={{
+                    width: '100%',
+                    padding: '0.75rem',
+                    borderRadius: '8px',
+                    border: '1px solid var(--neutral)',
+                    backgroundColor: 'var(--neutral)',
+                    color: 'var(--text-primary)'
+                  }}
+                  required
+                />
+              </div>
+              <div style={{ marginBottom: '1rem' }}>
+                <label style={{ color: 'var(--text-primary)', display: 'block', marginBottom: '0.5rem' }}>Description</label>
+                <textarea
+                  value={proposal.description}
+                  onChange={(e) => setProposal({...proposal, description: e.target.value})}
+                  rows={4}
+                  style={{
+                    width: '100%',
+                    padding: '0.75rem',
+                    borderRadius: '8px',
+                    border: '1px solid var(--neutral)',
+                    backgroundColor: 'var(--neutral)',
+                    color: 'var(--text-primary)',
+                    resize: 'vertical'
+                  }}
+                  required
+                />
+              </div>
+              <div style={{ display: 'flex', gap: '1rem', marginBottom: '1rem' }}>
+                <div style={{ flex: 1 }}>
+                  <label style={{ color: 'var(--text-primary)', display: 'block', marginBottom: '0.5rem' }}>Budget ($)</label>
+                  <input
+                    type="number"
+                    value={proposal.budget}
+                    onChange={(e) => setProposal({...proposal, budget: e.target.value})}
+                    style={{
+                      width: '100%',
+                      padding: '0.75rem',
+                      borderRadius: '8px',
+                      border: '1px solid var(--neutral)',
+                      backgroundColor: 'var(--neutral)',
+                      color: 'var(--text-primary)'
+                    }}
+                    required
+                  />
+                </div>
+                <div style={{ flex: 1 }}>
+                  <label style={{ color: 'var(--text-primary)', display: 'block', marginBottom: '0.5rem' }}>Timeline (days)</label>
+                  <input
+                    type="number"
+                    value={proposal.timeline}
+                    onChange={(e) => setProposal({...proposal, timeline: e.target.value})}
+                    style={{
+                      width: '100%',
+                      padding: '0.75rem',
+                      borderRadius: '8px',
+                      border: '1px solid var(--neutral)',
+                      backgroundColor: 'var(--neutral)',
+                      color: 'var(--text-primary)'
+                    }}
+                    required
+                  />
+                </div>
+              </div>
+              <div style={{ display: 'flex', gap: '1rem' }}>
+                <button
+                  type="button"
+                  onClick={() => setShowModal(false)}
+                  style={{
+                    flex: 1,
+                    padding: '0.75rem',
+                    borderRadius: '8px',
+                    border: '1px solid var(--neutral)',
+                    backgroundColor: 'transparent',
+                    color: 'var(--text-primary)',
+                    cursor: 'pointer'
+                  }}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={submitting}
+                  style={{
+                    flex: 1,
+                    padding: '0.75rem',
+                    borderRadius: '8px',
+                    border: 'none',
+                    backgroundColor: 'var(--secondary)',
+                    color: 'var(--primary)',
+                    cursor: submitting ? 'not-allowed' : 'pointer',
+                    opacity: submitting ? 0.7 : 1
+                  }}
+                >
+                  {submitting ? 'Submitting...' : 'Submit Application'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
