@@ -1,54 +1,100 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { useSession } from 'next-auth/react'
 import Link from 'next/link'
-import { Search, ShoppingCart, Filter } from 'lucide-react'
+import { Search } from 'lucide-react'
+import AddToCartButton from '@/components/AddToCartButton'
 
 const categories = ['All', 'Accounts', 'Digital-products', 'Proxies', 'Bulk_Gmails', 'KYC']
 
+interface Product {
+  id: string
+  title: string
+  description: string
+  price: number
+  images: string[]
+  category: string
+  rating: number
+  reviewCount: number
+  stock: number
+}
+
 export default function Products() {
-  const { data: session } = useSession()
-  const [products, setProducts] = useState([])
+  const [products, setProducts] = useState<Product[]>([])
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState('')
   const [searchQuery, setSearchQuery] = useState('')
   const [selectedCategory, setSelectedCategory] = useState('All')
 
   useEffect(() => {
-    fetchProducts()
-  }, [selectedCategory])
-
-  const fetchProducts = async () => {
-    try {
-      setLoading(true)
-      const url = selectedCategory === 'All' 
-        ? '/api/products'
-        : `/api/products?category=${selectedCategory}`
-      const res = await fetch(url)
-      const data = await res.json()
-      setProducts(data.products || [])
-    } catch (error) {
-      console.error('Error fetching products:', error)
-    } finally {
-      setLoading(false)
+    const fetchProducts = async () => {
+      try {
+        setLoading(true)
+        setError('')
+        
+        const response = await fetch('/api/products')
+        
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`)
+        }
+        
+        const data = await response.json()
+        
+        if (data.error) {
+          setError(data.error)
+          setProducts([])
+        } else {
+          setProducts(data.products || [])
+        }
+      } catch (err) {
+        console.error('Error fetching products:', err)
+        setError('Failed to load products')
+        setProducts([])
+      } finally {
+        setLoading(false)
+      }
     }
-  }
 
-  const filteredProducts = products.filter(product =>
-    product.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    product.description?.toLowerCase().includes(searchQuery.toLowerCase())
-  )
+    fetchProducts()
+  }, [])
+
+  const filteredProducts = products.filter(product => {
+    const matchesSearch = searchQuery ? (
+      product.title?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      product.description?.toLowerCase().includes(searchQuery.toLowerCase())
+    ) : true
+    
+    const matchesCategory = selectedCategory === 'All' || product.category === selectedCategory
+    
+    return matchesSearch && matchesCategory
+  })
+
+  if (error) {
+    return (
+      <div className="min-h-screen bg-slate-50 dark:bg-slate-900 flex items-center justify-center">
+        <div className="text-center max-w-md mx-auto p-6">
+          <div className="text-red-500 mb-4 text-6xl">⚠️</div>
+          <h2 className="text-xl font-bold mb-2">Failed to load products</h2>
+          <p className="text-slate-600 dark:text-slate-400 mb-4">{error}</p>
+          <button 
+            onClick={() => window.location.reload()}
+            className="px-4 py-2 bg-purple-500 text-white rounded-lg hover:bg-purple-600"
+          >
+            Retry
+          </button>
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-slate-900">
       <div className="max-w-7xl mx-auto px-4 py-8">
-        {/* Header */}
         <div className="mb-8">
           <h1 className="text-3xl font-bold mb-2">TalentHub🇰🇪</h1>
           <p className="text-slate-600 dark:text-slate-400">Browse digital products and services</p>
         </div>
 
-        {/* Search Bar */}
         <div className="mb-6">
           <div className="relative">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400 w-5 h-5" />
@@ -62,7 +108,6 @@ export default function Products() {
           </div>
         </div>
 
-        {/* Categories */}
         <div className="flex gap-2 mb-8 overflow-x-auto pb-2">
           {categories.map((category) => (
             <button
@@ -79,7 +124,6 @@ export default function Products() {
           ))}
         </div>
 
-        {/* Products Grid */}
         {loading ? (
           <div className="flex items-center justify-center py-12">
             <div className="text-center">
@@ -102,11 +146,11 @@ export default function Products() {
                 {product.images?.[0] && (
                   <img
                     src={product.images[0]}
-                    alt={product.name}
+                    alt={product.title}
                     className="w-full h-48 object-cover rounded-lg mb-4"
                   />
                 )}
-                <h3 className="text-lg font-semibold mb-2">{product.name}</h3>
+                <h3 className="text-lg font-semibold mb-2">{product.title}</h3>
                 <p className="text-slate-600 dark:text-slate-400 text-sm mb-4 line-clamp-2">
                   {product.description}
                 </p>
@@ -114,9 +158,23 @@ export default function Products() {
                   <span className="text-2xl font-bold text-purple-500">
                     KSh {product.price?.toLocaleString()}
                   </span>
-                  <button className="px-4 py-2 bg-purple-500 text-white rounded-lg hover:bg-purple-600 transition-colors">
-                    View
-                  </button>
+                  <div className="flex gap-2">
+                    <AddToCartButton 
+                      product={{
+                        id: product.id,
+                        title: product.title,
+                        price: product.price,
+                        images: product.images || []
+                      }}
+                      className="px-3 py-1 text-sm"
+                    />
+                    <Link
+                      href={`/products/${product.id}`}
+                      className="px-4 py-2 bg-purple-500 text-white rounded-lg hover:bg-purple-600 transition-colors"
+                    >
+                      View
+                    </Link>
+                  </div>
                 </div>
               </Link>
             ))}

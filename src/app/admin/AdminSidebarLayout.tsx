@@ -80,6 +80,10 @@ export default function AdminSidebarLayout({ children }: AdminSidebarLayoutProps
               <Users className="w-5 h-5" />
               <span>Sellers</span>
             </Link>
+            <Link href="/admin/products" className="flex items-center gap-3 p-3 rounded-lg hover:bg-gray-800 text-gray-300 hover:text-white">
+              <Package className="w-5 h-5" />
+              <span>Products</span>
+            </Link>
             <Link href="/admin/theme" className="flex items-center gap-3 p-3 rounded-lg hover:bg-gray-800 text-gray-300 hover:text-white">
               <Palette className="w-5 h-5" />
               <span>Theme</span>

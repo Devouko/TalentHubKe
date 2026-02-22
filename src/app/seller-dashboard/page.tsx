@@ -9,9 +9,9 @@ export default function SellerDashboard() {
   const { data: session } = useSession()
   const router = useRouter()
   const [activeTab, setActiveTab] = useState('overview')
-  const [gigs, setGigs] = useState([])
-  const [products, setProducts] = useState([])
-  const [orders, setOrders] = useState([])
+  const [gigs, setGigs] = useState<any[]>([])
+  const [products, setProducts] = useState<any[]>([])
+  const [orders, setOrders] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [stats, setStats] = useState({
     totalEarnings: 0,
@@ -35,12 +35,12 @@ export default function SellerDashboard() {
 
       const [gigsData, productsData, ordersData] = await Promise.all([
         gigsResponse.ok ? gigsResponse.json() : [],
-        productsResponse.ok ? productsResponse.json() : [],
+        productsResponse.ok ? productsResponse.json() : { products: [] },
         ordersResponse.ok ? ordersResponse.json() : []
       ])
 
       setGigs(gigsData)
-      setProducts(productsData)
+      setProducts(productsData.products || productsData || [])
       setOrders(ordersData)
 
       const totalEarnings = ordersData
@@ -55,7 +55,7 @@ export default function SellerDashboard() {
       setStats({
         totalEarnings,
         activeGigs: gigsData.length,
-        activeProducts: productsData.length,
+        activeProducts: Array.isArray(productsData.products) ? productsData.products.length : (Array.isArray(productsData) ? productsData.length : 0),
         completedOrders,
         avgRating: Number(avgRating.toFixed(1))
       })
@@ -127,6 +127,7 @@ export default function SellerDashboard() {
             { id: 'overview', label: 'Overview', icon: TrendingUp },
             { id: 'gigs', label: 'My Gigs', icon: Package },
             { id: 'products', label: 'My Products', icon: ShoppingCart },
+            { id: 'shop', label: 'Shop', icon: Store },
             { id: 'orders', label: 'Orders', icon: Store },
             { id: 'create', label: 'Create Gig', icon: Plus }
           ].map(item => {
@@ -224,7 +225,7 @@ export default function SellerDashboard() {
             <div className="bg-slate-800/50 backdrop-blur-xl rounded-2xl p-6 border border-slate-700/50 shadow-xl">
               <h3 className="text-2xl font-semibold mb-6 text-white">Recent Orders</h3>
               <div className="space-y-4">
-                {orders.slice(0, 5).map(order => (
+                {Array.isArray(orders) && orders.slice(0, 5).map(order => (
                   <div key={order.id} className="flex items-center justify-between p-4 bg-slate-700/30 rounded-xl border border-slate-600/30 hover:bg-slate-700/50 transition-all duration-200">
                     <div>
                       <p className="font-medium text-white">{order.gig?.title || order.product?.title || 'Order'}</p>
@@ -242,7 +243,7 @@ export default function SellerDashboard() {
                     </div>
                   </div>
                 ))}
-                {orders.length === 0 && (
+                {(!Array.isArray(orders) || orders.length === 0) && (
                   <div className="text-center py-8 text-slate-400">
                     <Store className="w-12 h-12 mx-auto mb-3 opacity-50" />
                     <p>No orders yet. Start promoting your gigs!</p>
@@ -382,11 +383,42 @@ export default function SellerDashboard() {
           </div>
         )}
 
+        {activeTab === 'shop' && (
+          <div className="space-y-6">
+            <h1 className="text-4xl font-bold bg-gradient-to-r from-emerald-400 to-teal-400 bg-clip-text text-transparent">My Shop</h1>
+            <div className="bg-slate-800/50 backdrop-blur-xl rounded-2xl p-8 border border-slate-700/50 text-center">
+              <Store className="w-20 h-20 text-emerald-400 mx-auto mb-4" />
+              <h3 className="text-2xl font-semibold text-white mb-3">Your Online Store</h3>
+              <p className="text-slate-400 mb-6 max-w-2xl mx-auto">Manage your products, view analytics, and customize your storefront. Your shop is your digital marketplace presence.</p>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 max-w-3xl mx-auto">
+                <div className="bg-slate-700/30 p-4 rounded-xl">
+                  <p className="text-3xl font-bold text-emerald-400 mb-1">{stats.activeProducts}</p>
+                  <p className="text-sm text-slate-400">Active Products</p>
+                </div>
+                <div className="bg-slate-700/30 p-4 rounded-xl">
+                  <p className="text-3xl font-bold text-emerald-400 mb-1">{stats.completedOrders}</p>
+                  <p className="text-sm text-slate-400">Total Sales</p>
+                </div>
+                <div className="bg-slate-700/30 p-4 rounded-xl">
+                  <p className="text-3xl font-bold text-emerald-400 mb-1">KES {stats.totalEarnings.toLocaleString()}</p>
+                  <p className="text-sm text-slate-400">Revenue</p>
+                </div>
+              </div>
+              <button
+                onClick={() => setActiveTab('products')}
+                className="mt-6 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 px-6 py-3 rounded-xl font-medium transition-all duration-200 shadow-lg"
+              >
+                Manage Products
+              </button>
+            </div>
+          </div>
+        )}
+
         {activeTab === 'orders' && (
           <div className="space-y-8">
             <h1 className="text-4xl font-bold bg-gradient-to-r from-emerald-400 to-teal-400 bg-clip-text text-transparent">Orders</h1>
             
-            {orders.length === 0 ? (
+            {!Array.isArray(orders) || orders.length === 0 ? (
               <div className="text-center py-16 bg-slate-800/30 rounded-2xl border border-slate-700/50">
                 <Store className="w-20 h-20 text-slate-400 mx-auto mb-6 opacity-50" />
                 <h3 className="text-2xl font-semibold text-slate-300 mb-3">No Orders Yet</h3>

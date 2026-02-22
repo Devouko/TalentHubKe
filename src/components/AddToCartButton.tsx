@@ -1,8 +1,9 @@
 'use client'
 
 import { useState } from 'react'
+import { useRouter } from 'next/navigation'
 import { ShoppingCart, Check } from 'lucide-react'
-import { useCart } from '../app/context/CartContext'
+import { useCart } from '@/app/context/CartContext'
 import { CartItem } from '../app/types/cart.types'
 
 interface AddToCartButtonProps {
@@ -17,29 +18,39 @@ interface AddToCartButtonProps {
 
 export default function AddToCartButton({ product, className = '' }: AddToCartButtonProps) {
   const { addToCart } = useCart()
+  const router = useRouter()
   const [isAdding, setIsAdding] = useState(false)
   const [isAdded, setIsAdded] = useState(false)
 
   const handleAddToCart = async () => {
-    setIsAdding(true)
-    
-    const cartItem: CartItem = {
-      id: product.id,
-      gigId: product.id,
-      title: product.title,
-      seller: 'Digital Store',
-      price: product.price,
-      quantity: 1,
-      deliveryTime: 0,
-      thumbnail: product.images[0] || '',
-      tier: 'basic'
+    try {
+      setIsAdding(true)
+      
+      const cartItem: CartItem = {
+        id: product.id,
+        gigId: product.id,
+        title: product.title,
+        seller: 'Digital Store',
+        price: product.price,
+        quantity: 1,
+        deliveryTime: 0,
+        thumbnail: product.images[0] || '',
+        tier: 'basic'
+      }
+      
+      await addToCart(cartItem)
+      setIsAdding(false)
+      setIsAdded(true)
+      
+      setTimeout(() => {
+        setIsAdded(false)
+        router.push('/checkout')
+      }, 1000)
+    } catch (error) {
+      console.error('Add to cart failed:', error)
+      setIsAdding(false)
+      alert('Failed to add to cart. Please try again.')
     }
-    
-    await addToCart(cartItem)
-    setIsAdding(false)
-    setIsAdded(true)
-    
-    setTimeout(() => setIsAdded(false), 2000)
   }
 
   return (

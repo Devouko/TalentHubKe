@@ -5,6 +5,7 @@ import { SessionProvider } from 'next-auth/react'
 import { ThemeProvider } from 'next-themes'
 import { UserProvider } from '../context/UserContext'
 import { SidebarProvider } from '../context/SidebarContext'
+import { CartProvider } from '../context/CartContext'
 
 // Error Boundary
 class ErrorBoundary extends React.Component<
@@ -57,7 +58,9 @@ export default function Providers({ children }: { children: ReactNode }) {
         <SessionProvider>
           <UserProvider>
             <SidebarProvider>
-              {children}
+              <CartProvider>
+                {children}
+              </CartProvider>
             </SidebarProvider>
           </UserProvider>
         </SessionProvider>

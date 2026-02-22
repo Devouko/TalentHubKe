@@ -1,8 +1,10 @@
 'use client'
 
+import { CATEGORIES } from '@/constants/categories'
+
 import { useState, useEffect, useCallback } from 'react'
 import { useSession } from 'next-auth/react'
-import { Search, Star, Heart, Eye, Filter, RefreshCw } from 'lucide-react'
+import { Search, Star, Heart, Eye, Filter, RefreshCw, Bell, MapPin, DollarSign, Calendar } from 'lucide-react'
 import Link from 'next/link'
 import { Card, CardContent, CardDescription, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -17,8 +19,9 @@ export default function BrowseGigs() {
   const [refreshing, setRefreshing] = useState(false)
   const [searchTerm, setSearchTerm] = useState('')
   const [selectedCategory, setSelectedCategory] = useState('all')
+  const [activeTab, setActiveTab] = useState('ongoing')
 
-  const categories = ['all', 'design', 'development', 'writing', 'marketing', 'video']
+  const categories = CATEGORIES
 
   const fetchGigs = useCallback(async (isRefresh = false) => {
     if (isRefresh) {
@@ -29,8 +32,9 @@ export default function BrowseGigs() {
     
     try {
       const response = await fetch('/api/gigs')
+      if (!response.ok) throw new Error('Failed to fetch')
       const data = await response.json()
-      setGigs(data || [])
+      setGigs(Array.isArray(data) ? data : [])
     } catch (error) {
       console.error('Error fetching gigs:', error)
       setGigs([])
@@ -52,26 +56,64 @@ export default function BrowseGigs() {
 
   const filteredGigs = gigs.filter(gig => {
     const matchesSearch = gig.title?.toLowerCase().includes(searchTerm.toLowerCase())
-    const matchesCategory = selectedCategory === 'all' || gig.category?.toLowerCase() === selectedCategory
-    return matchesSearch && matchesCategory
+    const matchesCategory = selectedCategory === 'all' || gig.category?.toLowerCase() === selectedCategory.toLowerCase()
+    
+    // Filter by tab - for now, show all gigs in ongoing tab since we don't have status field yet
+    const matchesTab = activeTab === 'ongoing' ? true : false
+    
+    return matchesSearch && matchesCategory && matchesTab
   })
 
   return (
     <div className="min-h-screen bg-background">
       <div className="max-w-7xl mx-auto px-4 py-8">
         <div className="mb-8">
-          <div className="flex items-center justify-between mb-4">
-            <h1 className="text-4xl font-bold text-foreground">Browse Gigs</h1>
-            <Button
-              onClick={() => manualRefresh()}
-              disabled={refreshing}
-              variant="outline"
-              size="sm"
-              className="flex items-center gap-2"
-            >
-              <RefreshCw className={`w-4 h-4 ${refreshing ? 'animate-spin' : ''}`} />
-              {refreshing ? 'Refreshing...' : 'Refresh'}
-            </Button>
+          <div className="flex items-center justify-between mb-6">
+            <div>
+              <h1 className="text-4xl font-bold text-foreground mb-2">Browse Gigs</h1>
+              <p className="text-muted-foreground">Find the perfect gig for your needs</p>
+            </div>
+            <div className="flex items-center gap-3">
+              <Button
+                onClick={() => manualRefresh()}
+                disabled={refreshing}
+                variant="outline"
+                size="sm"
+                className="flex items-center gap-2"
+              >
+                <RefreshCw className={`w-4 h-4 ${refreshing ? 'animate-spin' : ''}`} />
+                {refreshing ? 'Refreshing...' : 'Refresh'}
+              </Button>
+              <Button variant="ghost" size="sm">
+                <Bell className="w-4 h-4" />
+              </Button>
+            </div>
+          </div>
+
+          {/* Tabs */}
+          <div className="border-b border-border mb-6">
+            <div className="flex gap-8">
+              <button
+                onClick={() => setActiveTab('ongoing')}
+                className={`pb-3 px-2 border-b-2 transition-colors ${
+                  activeTab === 'ongoing'
+                    ? 'border-primary text-primary font-medium'
+                    : 'border-transparent text-muted-foreground hover:text-foreground'
+                }`}
+              >
+                Ongoing Gigs
+              </button>
+              <button
+                onClick={() => setActiveTab('past')}
+                className={`pb-3 px-2 border-b-2 transition-colors ${
+                  activeTab === 'past'
+                    ? 'border-primary text-primary font-medium'
+                    : 'border-transparent text-muted-foreground hover:text-foreground'
+                }`}
+              >
+                Past Gigs
+              </button>
+            </div>
           </div>
           
           <div className="flex flex-col md:flex-row gap-4 mb-6">
@@ -104,61 +146,60 @@ export default function BrowseGigs() {
 
         {loading && !refreshing ? (
           <div className="text-center py-12">
-            <div className="animate-pulse bg-muted h-4 w-full rounded mb-4"></div>
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
             <p className="text-muted-foreground">Loading gigs...</p>
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {filteredGigs.map(gig => (
-              <Card key={gig.id} className="overflow-hidden hover:shadow-lg transition-shadow">
-                <CardContent className="p-0">
-                  <div className="h-48 bg-muted flex items-center justify-center relative">
-                    {gig.images && gig.images.length > 0 ? (
-                      <img 
-                        src={gig.images[0]} 
-                        alt={gig.title} 
-                        className="w-full h-full object-cover" 
-                      />
-                    ) : (
-                      <Eye className="w-12 h-12 text-muted-foreground" />
-                    )}
-                    
-                    <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                      <Button size="sm" variant="ghost" className="h-8 w-8 p-0">
-                        <Heart className="w-4 h-4" />
-                      </Button>
-                    </div>
-                  </div>
+          <div className="space-y-4">
+            {/* Table Header */}
+            <div className="grid grid-cols-12 gap-4 px-4 py-3 bg-muted/50 rounded-lg text-sm font-medium text-muted-foreground">
+              <div className="col-span-5">PROJECT</div>
+              <div className="col-span-2 flex items-center gap-1">
+                <MapPin className="w-4 h-4" />
+                LOCATION
+              </div>
+              <div className="col-span-2 flex items-center gap-1">
+                <DollarSign className="w-4 h-4" />
+                PAYMENT
+              </div>
+              <div className="col-span-3 flex items-center gap-1">
+                <Calendar className="w-4 h-4" />
+                DURATION
+              </div>
+            </div>
 
-                  <div className="p-4">
-                    <CardTitle className="text-lg font-semibold mb-2 line-clamp-2">
-                      {gig.title}
-                    </CardTitle>
-                    
-                    <CardDescription className="text-sm mb-3 line-clamp-2">
-                      {gig.description}
-                    </CardDescription>
-                    
-                    <div className="flex items-center gap-2 mb-3">
-                      <div className="flex items-center gap-1">
-                        <Star className="w-4 h-4 text-yellow-500 fill-current" />
-                        <span className="text-sm">{gig.rating || 5.0}</span>
-                      </div>
-                      <span className="text-muted-foreground text-sm">({gig.reviewCount || 0})</span>
-                      <Badge variant="secondary" className="ml-auto">
-                        {gig.category}
-                      </Badge>
+            {/* Gig Cards */}
+            {filteredGigs.map(gig => (
+              <Card key={gig.id} className="hover:shadow-md transition-shadow">
+                <CardContent className="p-4">
+                  <div className="grid grid-cols-12 gap-4 items-center">
+                    <div className="col-span-5">
+                      <Link href={`/gig/${gig.id}`} className="hover:text-primary transition-colors">
+                        <h3 className="font-semibold mb-1">{gig.title}</h3>
+                        <p className="text-sm text-muted-foreground line-clamp-1">{gig.description}</p>
+                        <div className="flex items-center gap-2 mt-1">
+                          <Badge variant="secondary" className="text-xs">{gig.category}</Badge>
+                          {gig.users?.name && (
+                            <span className="text-xs text-muted-foreground">by {gig.users.name}</span>
+                          )}
+                        </div>
+                      </Link>
                     </div>
-                    
-                    <div className="flex items-center justify-between">
-                      <span className="text-xl font-bold text-primary">
-                        KES {gig.price?.toLocaleString() || '5,000'}
-                      </span>
-                      
+                    <div className="col-span-2 flex items-center gap-1 text-sm">
+                      <MapPin className="w-4 h-4 text-muted-foreground" />
+                      <span>{gig.location || 'NA'}</span>
+                    </div>
+                    <div className="col-span-2 flex items-center gap-1 text-sm font-semibold text-primary">
+                      <DollarSign className="w-4 h-4" />
+                      <span>KES {gig.price?.toLocaleString() || '0'}</span>
+                    </div>
+                    <div className="col-span-3 flex items-center justify-between">
+                      <div className="flex items-center gap-1 text-sm">
+                        <Calendar className="w-4 h-4 text-muted-foreground" />
+                        <span>{gig.deliveryTime ? `${gig.deliveryTime} days` : 'NA'}</span>
+                      </div>
                       <Link href={`/gig/${gig.id}`}>
-                        <Button size="sm">
-                          Order Now
-                        </Button>
+                        <Button size="sm">View</Button>
                       </Link>
                     </div>
                   </div>

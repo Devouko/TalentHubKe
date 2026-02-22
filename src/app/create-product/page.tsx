@@ -1,21 +1,14 @@
 'use client'
 
+import { CATEGORY_OPTIONS } from '@/constants/categories'
+
 import { useState } from 'react'
 import { motion } from 'framer-motion'
 import { useRouter } from 'next/navigation'
 import { useSession } from 'next-auth/react'
 import { Plus, X, DollarSign, Package, Truck } from 'lucide-react'
 
-const productCategories = [
-  'Electronics & Gadgets',
-  'Fashion & Clothing',
-  'Home & Garden',
-  'Health & Beauty',
-  'Sports & Fitness',
-  'Books & Media',
-  'Art & Crafts',
-  'Digital Products'
-]
+const productCategories = CATEGORY_OPTIONS
 
 export default function CreateProduct() {
   const { data: session } = useSession()

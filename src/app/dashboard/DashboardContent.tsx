@@ -54,6 +54,15 @@ export default function DashboardContent() {
   const [newMessage, setNewMessage] = useState('')
   const [messageSearchTerm, setMessageSearchTerm] = useState('')
   const [showProfileDropdown, setShowProfileDropdown] = useState(false)
+  const [profileEditData, setProfileEditData] = useState({
+    name: '',
+    email: '',
+    phoneNumber: '',
+    county: '',
+    bio: '',
+    profileImage: ''
+  })
+  const [profileSaving, setProfileSaving] = useState(false)
 
   const fetchConversations = async () => {
     try {
@@ -93,10 +102,29 @@ export default function DashboardContent() {
   }, [])
 
   useEffect(() => {
-    if (activeTab === 'home') {
-      fetchProducts()
+    if (session?.user && activeTab === 'profile-edit') {
+      fetchProfileData()
     }
-  }, [activeTab])
+  }, [session, activeTab])
+
+  const fetchProfileData = async () => {
+    try {
+      const response = await fetch('/api/profile')
+      if (response.ok) {
+        const data = await response.json()
+        setProfileEditData({
+          name: data.name || '',
+          email: data.email || '',
+          phoneNumber: data.phoneNumber || '',
+          county: data.county || '',
+          bio: data.bio || '',
+          profileImage: data.profileImage || ''
+        })
+      }
+    } catch (error) {
+      console.error('Error fetching profile:', error)
+    }
+  }
 
   const fetchProducts = async () => {
     try {
@@ -938,6 +966,176 @@ export default function DashboardContent() {
     </div>
   )
 
+  const renderProfileEdit = () => {
+    const profileCompletion = 50
+
+    const handleSave = async () => {
+      setProfileSaving(true)
+      try {
+        const response = await fetch('/api/profile', {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(profileEditData)
+        })
+        if (response.ok) {
+          const updatedData = await response.json()
+          setAlert({ type: 'success', message: 'Profile updated successfully!' })
+          // Update session data if needed
+          await fetchProfileData()
+        } else {
+          const error = await response.json()
+          setAlert({ type: 'error', message: error.error || 'Failed to update profile' })
+        }
+      } catch (error) {
+        console.error('Error updating profile:', error)
+        setAlert({ type: 'error', message: 'Failed to update profile' })
+      } finally {
+        setProfileSaving(false)
+      }
+    }
+
+    return (
+      <div className="space-y-6">
+        <h2 className="text-2xl font-bold">My Profile</h2>
+        
+        {/* Profile Header */}
+        <div className="bg-gray-800 border border-gray-700 rounded-xl p-6">
+          <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
+            <div className="flex items-center gap-6">
+              <div className="relative">
+                {profileEditData.profileImage ? (
+                  <img src={profileEditData.profileImage} alt="Profile" className="w-24 h-24 rounded-full object-cover border-4 border-emerald-500/20" />
+                ) : (
+                  <div className="w-24 h-24 rounded-full bg-gradient-to-br from-emerald-400 to-teal-500 flex items-center justify-center text-white text-3xl font-bold border-4 border-emerald-500/20">
+                    {profileEditData.name?.[0]?.toUpperCase() || 'U'}
+                  </div>
+                )}
+              </div>
+              <div>
+                <h3 className="text-xl font-bold mb-2">{profileEditData.name || 'User'}</h3>
+                <div className="flex items-center gap-3 mb-2">
+                  <span className="text-sm text-gray-400">Profile completion: {profileCompletion}%</span>
+                  <div className="w-32 h-2 bg-gray-700 rounded-full overflow-hidden">
+                    <div className="h-full bg-emerald-500 transition-all" style={{ width: `${profileCompletion}%` }} />
+                  </div>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="px-3 py-1 bg-yellow-500/20 text-yellow-400 text-xs rounded-full border border-yellow-500/30">Pending</span>
+                  <button className="px-3 py-1 bg-emerald-600 hover:bg-emerald-700 text-white text-xs rounded-lg transition-colors">Verify Your ID</button>
+                </div>
+              </div>
+            </div>
+            <div className="text-sm text-gray-400 space-y-1">
+              <div>Username: {profileEditData.email}</div>
+              <button className="text-emerald-500 hover:text-emerald-400 transition-colors">Change Password</button>
+            </div>
+          </div>
+        </div>
+
+        {/* Profile Image Upload */}
+        <div className="bg-gray-800 border border-gray-700 rounded-xl p-6">
+          <h3 className="text-lg font-semibold mb-4">Profile Picture</h3>
+          <div className="flex items-center gap-4">
+            <input
+              type="file"
+              accept="image/*"
+              onChange={async (e) => {
+                const file = e.target.files?.[0]
+                if (file) {
+                  const formData = new FormData()
+                  formData.append('file', file)
+                  try {
+                    const response = await fetch('/api/upload', {
+                      method: 'POST',
+                      body: formData
+                    })
+                    if (response.ok) {
+                      const data = await response.json()
+                      setProfileEditData({ ...profileEditData, profileImage: data.url })
+                      setAlert({ type: 'success', message: 'Image uploaded successfully!' })
+                    }
+                  } catch (error) {
+                    setAlert({ type: 'error', message: 'Failed to upload image' })
+                  }
+                }
+              }}
+              className="text-sm text-gray-400 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-emerald-600 file:text-white hover:file:bg-emerald-700 file:cursor-pointer"
+            />
+            <span className="text-xs text-gray-400">Images up to 4MB</span>
+          </div>
+        </div>
+
+        {/* Basic Information Form */}
+        <div className="bg-gray-800 border border-gray-700 rounded-xl p-6">
+          <h3 className="text-lg font-semibold mb-6">Basic Information</h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div>
+              <label className="block text-sm font-medium text-gray-300 mb-2">Full Name</label>
+              <input
+                type="text"
+                value={profileEditData.name}
+                onChange={(e) => setProfileEditData({ ...profileEditData, name: e.target.value })}
+                placeholder="Enter your full name"
+                className="w-full p-3 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-300 mb-2">Email</label>
+              <input
+                type="email"
+                value={profileEditData.email}
+                disabled
+                className="w-full p-3 bg-gray-900 border border-gray-600 rounded-lg text-gray-500 cursor-not-allowed"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-300 mb-2">Phone Number</label>
+              <input
+                type="tel"
+                value={profileEditData.phoneNumber}
+                onChange={(e) => setProfileEditData({ ...profileEditData, phoneNumber: e.target.value })}
+                className="w-full p-3 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-300 mb-2">County</label>
+              <input
+                type="text"
+                value={profileEditData.county}
+                onChange={(e) => setProfileEditData({ ...profileEditData, county: e.target.value })}
+                className="w-full p-3 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
+              />
+            </div>
+            <div className="md:col-span-2">
+              <label className="block text-sm font-medium text-gray-300 mb-2">Bio</label>
+              <textarea
+                value={profileEditData.bio}
+                onChange={(e) => setProfileEditData({ ...profileEditData, bio: e.target.value })}
+                className="w-full min-h-[120px] p-3 bg-gray-700 border border-gray-600 rounded-lg text-white resize-vertical focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                placeholder="Tell us about yourself..."
+              />
+            </div>
+          </div>
+          <div className="flex justify-end gap-4 mt-6">
+            <button
+              onClick={() => setActiveTab('dashboard')}
+              className="px-6 py-3 bg-gray-700 hover:bg-gray-600 text-white rounded-lg transition-colors"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={handleSave}
+              disabled={profileSaving}
+              className="px-6 py-3 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white rounded-lg transition-colors flex items-center gap-2"
+            >
+              {profileSaving ? 'Saving...' : 'Save Changes'}
+            </button>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
   const renderStoreContent = () => (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -1062,6 +1260,8 @@ export default function DashboardContent() {
         return renderBrowseGigs()
       case 'all-talent':
         return renderAllTalent()
+      case 'profile-edit':
+        return renderProfileEdit()
       case 'apply-seller':
         return renderApplySeller()
       case 'create-gig':
@@ -1102,6 +1302,7 @@ export default function DashboardContent() {
             { id: 'dashboard', label: 'Dashboard', icon: TrendingUp },
             { id: 'browse-gigs', label: 'Browse Gigs', icon: Search },
             { id: 'all-talent', label: 'All Talent', icon: Users },
+            { id: 'profile-edit', label: 'My Profile', icon: User },
             { id: 'apply-seller', label: 'Apply to Seller', icon: UserCheck },
             { id: 'create-gig', label: 'Create Gig', icon: Plus },
             { id: 'my-products', label: 'My Products', icon: Package },
@@ -1217,9 +1418,12 @@ export default function DashboardContent() {
                       </p>
                     </div>
                     <div className="p-2">
-                      <Link
-                        href="/profile/edit"
-                        className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-all ${
+                      <button
+                        onClick={() => {
+                          setActiveTab('profile-edit')
+                          setShowProfileDropdown(false)
+                        }}
+                        className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-all w-full ${
                           isDarkMode
                             ? 'hover:bg-slate-700/50 text-gray-300'
                             : 'hover:bg-gray-100 text-gray-700'
@@ -1227,10 +1431,13 @@ export default function DashboardContent() {
                       >
                         <Edit className="w-4 h-4" />
                         <span>Edit Profile</span>
-                      </Link>
-                      <Link
-                        href="/settings"
-                        className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-all ${
+                      </button>
+                      <button
+                        onClick={() => {
+                          setActiveTab('settings')
+                          setShowProfileDropdown(false)
+                        }}
+                        className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-all w-full ${
                           isDarkMode
                             ? 'hover:bg-slate-700/50 text-gray-300'
                             : 'hover:bg-gray-100 text-gray-700'
@@ -1238,7 +1445,7 @@ export default function DashboardContent() {
                       >
                         <Settings className="w-4 h-4" />
                         <span>Settings</span>
-                      </Link>
+                      </button>
                       <button
                         onClick={handleSignOut}
                         className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-all ${

@@ -8,21 +8,35 @@ export async function GET(
   try {
     const user = await prisma.user.findUnique({
       where: { id: params.id },
-      select: {
-        id: true,
-        name: true,
-        email: true,
-        bio: true,
-        skills: true,
-        experience: true,
-        hourlyRate: true,
-        rating: true,
-        completedProjects: true,
-        location: true,
-        title: true,
-        createdAt: true,
-        profileImage: true,
-        isVerified: true
+      include: {
+        gigs: {
+          select: {
+            id: true,
+            title: true,
+            description: true,
+            price: true,
+            deliveryTime: true,
+            rating: true,
+            reviewCount: true
+          }
+        },
+        reviews: {
+          include: {
+            reviewer: {
+              select: {
+                name: true
+              }
+            }
+          },
+          take: 5
+        },
+        _count: {
+          select: {
+            gigs: true,
+            orders: true,
+            reviews: true
+          }
+        }
       }
     })
 

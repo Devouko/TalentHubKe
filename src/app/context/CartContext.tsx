@@ -32,19 +32,20 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
     if (!session?.user?.id) return;
     
     try {
-      const response = await fetch('/api/products?action=cart');
+      const response = await fetch('/api/cart');
       if (response.ok) {
         const data = await response.json();
-        setCart(data.items.map((item: any) => ({
+        setCart(data.cart.map((item: any) => ({
           id: item.productId,
           gigId: item.productId,
-          title: item.title,
+          title: item.product.title,
           seller: 'Digital Store',
-          price: item.price,
+          price: item.product.price,
           quantity: item.quantity,
           deliveryTime: 0,
-          thumbnail: item.images[0] || '',
-          tier: 'basic' as const
+          thumbnail: item.product.images[0] || '',
+          tier: 'basic' as const,
+          category: 'Digital Products'
         })));
       }
     } catch (error) {
@@ -63,11 +64,10 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
     }
     
     try {
-      const response = await fetch('/api/products', {
+      const response = await fetch('/api/cart', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          action: 'addToCart',
           productId: item.id,
           quantity: 1
         })
@@ -85,7 +85,7 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
     if (!session?.user?.id) return;
     
     try {
-      const response = await fetch(`/api/products?action=removeFromCart&productId=${productId}`, {
+      const response = await fetch(`/api/cart?productId=${productId}`, {
         method: 'DELETE'
       });
       
@@ -101,11 +101,10 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
     if (!session?.user?.id) return;
     
     try {
-      const response = await fetch('/api/products', {
-        method: 'PUT',
+      const response = await fetch('/api/cart', {
+        method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          action: 'updateCart',
           productId,
           quantity
         })
@@ -123,13 +122,13 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
     if (!session?.user?.id) return;
     
     try {
-      const response = await fetch('/api/products?action=removeFromCart', {
-        method: 'DELETE'
-      });
-      
-      if (response.ok) {
-        setCart([]);
+      // Remove all items from cart
+      for (const item of cart) {
+        await fetch(`/api/cart?productId=${item.id}`, {
+          method: 'DELETE'
+        });
       }
+      setCart([]);
     } catch (error) {
       console.error('Failed to clear cart:', error);
     }

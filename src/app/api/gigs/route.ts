@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { ApiService } from '@/lib/api.service'
+import { sanitizeCategory } from '@/utils/categoryValidation'
 
 export async function GET(request: NextRequest) {
   return ApiService.handleRequest(async () => {
@@ -8,10 +9,10 @@ export async function GET(request: NextRequest) {
     const id = searchParams.get('id')
     
     if (id) {
-      const gig = await prisma.gig.findUnique({
+      const gig = await prisma.gigs.findUnique({
         where: { id },
         include: {
-          seller: { select: { id: true, name: true, email: true } }
+          users: { select: { id: true, name: true, email: true } }
         }
       })
       
@@ -19,10 +20,10 @@ export async function GET(request: NextRequest) {
       return gig
     }
     
-    return await prisma.gig.findMany({
+    return await prisma.gigs.findMany({
       where: { isActive: true },
       include: {
-        seller: { select: { id: true, name: true, email: true } }
+        users: { select: { id: true, name: true, email: true } }
       },
       orderBy: { createdAt: 'desc' }
     })
@@ -40,11 +41,11 @@ export async function POST(request: NextRequest) {
       throw new Error('Price must be greater than 0')
     }
     
-    const gig = await prisma.gig.create({
+    const gig = await prisma.gigs.create({
       data: {
         title: ApiService.sanitizeString(data.title),
         description: ApiService.sanitizeString(data.description),
-        category: ApiService.sanitizeString(data.category),
+        category: sanitizeCategory(data.category),
         subcategory: ApiService.sanitizeString(data.subcategory) || null,
         price: ApiService.parseNumber(data.price),
         deliveryTime: ApiService.parseNumber(data.deliveryTime, 3),
@@ -54,7 +55,7 @@ export async function POST(request: NextRequest) {
         isActive: true
       },
       include: {
-        seller: { select: { id: true, name: true, email: true } }
+        users: { select: { id: true, name: true, email: true } }
       }
     })
     
@@ -70,7 +71,7 @@ export async function PUT(request: NextRequest) {
     
     if (!id) throw new Error('Gig ID is required')
     
-    const existingGig = await prisma.gig.findUnique({
+    const existingGig = await prisma.gigs.findUnique({
       where: { id },
       select: { sellerId: true }
     })
@@ -83,11 +84,11 @@ export async function PUT(request: NextRequest) {
     
     const data = await request.json()
     
-    return await prisma.gig.update({
+    return await prisma.gigs.update({
       where: { id },
       data,
       include: {
-        seller: { select: { id: true, name: true, email: true } }
+        users: { select: { id: true, name: true, email: true } }
       }
     })
   }, 'Failed to update gig')
@@ -101,7 +102,7 @@ export async function DELETE(request: NextRequest) {
     
     if (!id) throw new Error('Gig ID is required')
     
-    const existingGig = await prisma.gig.findUnique({
+    const existingGig = await prisma.gigs.findUnique({
       where: { id },
       select: { sellerId: true }
     })
@@ -111,9 +112,9 @@ export async function DELETE(request: NextRequest) {
     if (existingGig.sellerId !== session.user.id && session.user.userType !== 'ADMIN') {
       throw new Error('Insufficient permissions')
     }
-    
-    await prisma.gig.delete({ where: { id } })
-    
+
+    await prisma.gigs.delete({ where: { id } })
+
     return { message: 'Gig deleted successfully' }
   }, 'Failed to delete gig')
 }

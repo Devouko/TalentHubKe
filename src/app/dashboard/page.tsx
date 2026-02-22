@@ -26,21 +26,21 @@ export default function DashboardPage() {
 
   if (status === 'loading') {
     return (
-      <div className="min-h-screen bg-black flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-500"></div>
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
       </div>
     )
   }
 
   if (!session) {
     return (
-      <div className="min-h-screen bg-black text-white flex items-center justify-center">
+      <div className="min-h-screen bg-background text-foreground flex items-center justify-center">
         <div className="text-center">
           <h1 className="text-2xl font-bold mb-4">Access Denied</h1>
-          <p className="text-gray-400 mb-6">Please sign in to access the dashboard</p>
+          <p className="text-muted-foreground mb-6">Please sign in to access the dashboard</p>
           <button 
             onClick={() => router.push('/auth')}
-            className="bg-purple-600 hover:bg-purple-700 text-white px-6 py-3 rounded-lg"
+            className="bg-primary hover:bg-primary/90 text-primary-foreground px-6 py-3 rounded-lg"
           >
             Sign In
           </button>

@@ -17,7 +17,7 @@ export const authOptions: NextAuthOptions = {
         }
 
         try {
-          const user = await prisma.user.findUnique({
+          const user = await prisma.users.findUnique({
             where: { email: credentials.email },
             select: {
               id: true,
@@ -47,7 +47,7 @@ export const authOptions: NextAuthOptions = {
             email: user.email,
             name: user.name,
             userType: user.userType,
-            image: user.image,
+            image: user.image || user.profileImage,
             profileImage: user.profileImage,
             isVerified: user.isVerified,
             sellerStatus: user.sellerStatus
@@ -79,14 +79,15 @@ export const authOptions: NextAuthOptions = {
     async session({ session, token }) {
       if (token?.sub) {
         session.user.id = token.sub
-        session.user.userType = token.userType as string
-        session.user.isVerified = token.isVerified as boolean
-        session.user.sellerStatus = token.sellerStatus as string
-        session.user.profileImage = token.profileImage as string
+        session.user.userType = token.userType
+        session.user.isVerified = token.isVerified
+        session.user.sellerStatus = token.sellerStatus
+        session.user.profileImage = token.profileImage
       }
       return session
     },
     async redirect({ url, baseUrl, token }) {
+      // Handle sign-in redirects based on user type
       if (url === baseUrl || url === `${baseUrl}/` || url === `${baseUrl}/auth/signin`) {
         if (token?.userType === 'ADMIN') {
           return `${baseUrl}/admin`
@@ -97,9 +98,12 @@ export const authOptions: NextAuthOptions = {
         return `${baseUrl}/dashboard`
       }
       
+      // Allow same-origin redirects
       if (url.startsWith('/')) return `${baseUrl}${url}`
       if (new URL(url).origin === baseUrl) return url
-      return baseUrl
+      
+      // Default to dashboard for authenticated users
+      return `${baseUrl}/dashboard`
     }
   },
   pages: {
