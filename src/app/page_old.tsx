@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useMemo } from 'react'
 import { useSession } from 'next-auth/react'
 import Link from 'next/link'
 import { motion } from 'framer-motion'
@@ -79,7 +79,7 @@ export default function Home() {
 
   if (!mounted) return null
 
-  const heroContent = getHeroContent()
+  const heroContent = useMemo(() => getHeroContent(), [mounted, session, userType])
 
   return (
     <div className="min-h-screen text-slate-900 dark:text-white overflow-x-hidden relative bg-gradient-to-br from-slate-50 via-white to-slate-100 dark:from-slate-950 dark:via-slate-900 dark:to-slate-800">
@@ -228,13 +228,13 @@ export default function Home() {
                   {heroContent.cta1.text}
                 </motion.button>
               </Link>
-              <Link href={heroContent.cta2?.href || '/browse-gigs'}>
+              <Link href={heroContent.cta2.href}>
                 <motion.button
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
                   className="px-8 py-4 bg-slate-100/50 dark:bg-slate-800/50 backdrop-blur-xl border border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600 rounded-full font-semibold text-lg transition-all"
                 >
-                  {heroContent.cta2?.text || 'Browse Gigs'}
+                  {heroContent.cta2.text}
                 </motion.button>
               </Link>
             </motion.div>

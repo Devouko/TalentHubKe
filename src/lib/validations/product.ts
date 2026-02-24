@@ -1,71 +1,33 @@
 import { z } from 'zod'
 
-export const productCategorySchema = z.object({
-  name: z.string().min(2).max(100),
-  slug: z.string().min(2).max(100).regex(/^[a-z0-9-]+$/),
-  description: z.string().optional(),
-  isActive: z.boolean().default(true)
-})
-
-export const productSchema = z.object({
-  name: z.string().min(2).max(200),
-  slug: z.string().min(2).max(200).regex(/^[a-z0-9-]+$/),
-  sku: z.string().min(2).max(50).regex(/^[A-Z0-9-]+$/),
-  description: z.string().min(10),
-  shortDescription: z.string().max(500).optional(),
-  price: z.number().positive(),
-  comparePrice: z.number().positive().optional(),
-  costPrice: z.number().positive().optional(),
-  quantity: z.number().int().min(0).default(0),
-  lowStockThreshold: z.number().int().min(0).default(10),
-  trackInventory: z.boolean().default(true),
-  isDigital: z.boolean().default(false),
-  categoryId: z.string().optional(),
-  brand: z.string().max(100).optional(),
-  tags: z.array(z.string().max(30)).max(10).default([]),
-  metaTitle: z.string().max(200).optional(),
-  metaDescription: z.string().max(500).optional(),
-  isActive: z.boolean().default(true),
-  isFeatured: z.boolean().default(false),
+export const createProductSchema = z.object({
+  name: z.string().min(1, 'Product name is required').max(200),
+  slug: z.string().min(1, 'Slug is required').optional(),
+  sku: z.string().min(1, 'SKU is required').optional(),
+  description: z.string().min(10, 'Description must be at least 10 characters').max(5000),
+  shortDescription: z.string().optional().nullable(),
+  price: z.coerce.number().positive('Price must be positive'),
+  comparePrice: z.coerce.number().positive().optional().nullable(),
+  costPrice: z.coerce.number().positive().optional().nullable(),
+  quantity: z.coerce.number().int().min(0, 'Quantity cannot be negative'),
+  lowStockThreshold: z.coerce.number().int().min(0).optional().nullable(),
+  trackInventory: z.boolean().optional().default(true),
+  isDigital: z.boolean().optional().default(false),
+  categoryId: z.string().min(1, 'Category is required'),
+  brand: z.string().max(100).optional().nullable(),
   images: z.array(z.object({
-    url: z.string().url(),
+    url: z.string(),
     alt: z.string().optional(),
-    position: z.number().int().min(0).default(0)
-  })).max(10).default([])
+    position: z.number().optional()
+  })).min(1, 'At least one image is required'),
+  tags: z.array(z.string()).optional().default([]),
+  metaTitle: z.string().optional().nullable(),
+  metaDescription: z.string().optional().nullable(),
+  isActive: z.boolean().optional().default(true),
+  isFeatured: z.boolean().optional().default(false)
 })
 
-export const updateProductSchema = productSchema.partial()
+export const updateProductSchema = createProductSchema.partial()
 
-export const stockAdjustmentSchema = z.object({
-  changeType: z.enum(['INITIAL', 'PURCHASE', 'SALE', 'RETURN', 'ADJUSTMENT', 'DAMAGE', 'TRANSFER']),
-  quantityChange: z.number().int(),
-  reason: z.string().optional(),
-  notes: z.string().optional()
-})
-
-export const bulkStockUpdateSchema = z.object({
-  updates: z.array(z.object({
-    productId: z.string(),
-    quantityChange: z.number().int(),
-    changeType: z.enum(['ADJUSTMENT', 'PURCHASE', 'DAMAGE']),
-    reason: z.string().optional()
-  })).max(100)
-})
-
-export const productFilterSchema = z.object({
-  search: z.string().optional(),
-  categoryId: z.string().optional(),
-  stockStatus: z.enum(['IN_STOCK', 'LOW_STOCK', 'OUT_OF_STOCK', 'DISCONTINUED']).optional(),
-  isActive: z.boolean().optional(),
-  isFeatured: z.boolean().optional(),
-  minPrice: z.number().optional(),
-  maxPrice: z.number().optional(),
-  sortBy: z.string().default('createdAt'),
-  sortOrder: z.enum(['asc', 'desc']).default('desc'),
-  page: z.number().int().positive().default(1),
-  limit: z.number().int().positive().max(100).default(20)
-})
-
-export type ProductCategory = z.infer<typeof productCategorySchema>
-export type Product = z.infer<typeof productSchema>
-export type StockAdjustment = z.infer<typeof stockAdjustmentSchema>
+export type CreateProductInput = z.infer<typeof createProductSchema>
+export type UpdateProductInput = z.infer<typeof updateProductSchema>

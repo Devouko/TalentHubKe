@@ -5,11 +5,8 @@ import { prisma } from '@/lib/prisma'
 
 export async function GET() {
   try {
-    const offers = await prisma.offerCarousel.findMany({
-      where: { isActive: true },
-      orderBy: { order: 'asc' }
-    })
-    return NextResponse.json(offers)
+    // Return empty array since offerCarousel table doesn't exist
+    return NextResponse.json([])
   } catch (error) {
     return NextResponse.json({ error: 'Failed to fetch offers' }, { status: 500 })
   }

@@ -45,6 +45,19 @@ export default function ProductsManagement() {
     return 'active'
   }
 
+  const handleDelete = async (productId: string) => {
+    if (!confirm('Are you sure you want to delete this product?')) return
+    
+    try {
+      const res = await fetch(`/api/admin/products/${productId}`, { method: 'DELETE' })
+      if (res.ok) {
+        setProducts(products.filter(p => p.id !== productId))
+      }
+    } catch (error) {
+      console.error('Error deleting product:', error)
+    }
+  }
+
   const filteredProducts = products.filter(product => {
     const matchesSearch = product.title.toLowerCase().includes(searchTerm.toLowerCase())
     const status = getProductStatus(product)
@@ -241,17 +254,31 @@ export default function ProductsManagement() {
                       </div>
                     </div>
 
-                    {/* Action Buttons */}
                     <div className="flex gap-2">
-                      <Button variant="outline" size="sm" className="flex-1 border-gray-600 hover:bg-gray-700">
+                      <Button 
+                        variant="outline" 
+                        size="sm" 
+                        className="flex-1 border-gray-600 hover:bg-gray-700"
+                        onClick={() => window.open(`/products/${product.id}`, '_blank')}
+                      >
                         <Eye className="w-4 h-4 mr-2" />
                         View
                       </Button>
-                      <Button variant="outline" size="sm" className="flex-1 border-gray-600 hover:bg-gray-700">
+                      <Button 
+                        variant="outline" 
+                        size="sm" 
+                        className="flex-1 border-gray-600 hover:bg-gray-700"
+                        onClick={() => window.location.href = `/admin/products/${product.id}/edit`}
+                      >
                         <Edit className="w-4 h-4 mr-2" />
                         Edit
                       </Button>
-                      <Button variant="outline" size="sm" className="border-red-600 text-red-400 hover:bg-red-600/10">
+                      <Button 
+                        variant="outline" 
+                        size="sm" 
+                        className="border-red-600 text-red-400 hover:bg-red-600/10"
+                        onClick={() => handleDelete(product.id)}
+                      >
                         <Trash2 className="w-4 h-4" />
                       </Button>
                     </div>

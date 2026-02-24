@@ -14,7 +14,7 @@ export async function GET(request: Request) {
     const type = searchParams.get('type')
     
     if (id) {
-      const user = await prisma.user.findUnique({
+      const user = await prisma.users.findUnique({
         where: { id },
         select: {
           id: true,
@@ -39,7 +39,7 @@ export async function GET(request: Request) {
       whereClause = { userType: { in: ['FREELANCER', 'AGENCY'] } }
     }
     
-    const users = await prisma.user.findMany({
+    const users = await prisma.users.findMany({
       where: whereClause,
       select: {
         id: true,
@@ -95,7 +95,7 @@ export async function POST(request: Request) {
   try {
     const userData = await request.json()
     
-    const newUser = await prisma.user.create({
+    const newUser = await prisma.users.create({
       data: userData,
       select: {
         id: true,
@@ -130,7 +130,7 @@ export async function PUT(request: Request) {
     
     const userData = await request.json()
     
-    const updatedUser = await prisma.user.update({
+    const updatedUser = await prisma.users.update({
       where: { id },
       data: userData,
       select: {
@@ -167,7 +167,7 @@ export async function DELETE(request: Request) {
       return NextResponse.json({ error: 'User ID is required' }, { status: 400 })
     }
     
-    await prisma.user.delete({
+    await prisma.users.delete({
       where: { id }
     })
     

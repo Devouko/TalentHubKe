@@ -10,7 +10,7 @@ export async function GET() {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    const settings = await prisma.securitySettings.findFirst() || {
+    const settings = await prisma.security_settings.findFirst() || {
       autoBackupEnabled: true,
       backupFrequency: 'DAILY',
       maxLoginAttempts: 5,
@@ -34,10 +34,20 @@ export async function PUT(request: NextRequest) {
 
     const data = await request.json()
 
-    const settings = await prisma.securitySettings.upsert({
+    const settings = await prisma.security_settings.upsert({
       where: { id: 'default' },
-      update: data,
-      create: { id: 'default', ...data }
+      update: { ...data, updatedAt: new Date() },
+      create: { id: 'default', ...data, updatedAt: new Date() }
+    })
+
+    await prisma.system_logs.create({
+      data: {
+        id: crypto.randomUUID(),
+        type: 'SECURITY',
+        message: 'Security settings updated',
+        details: data,
+        userId: session.user.id
+      }
     })
 
     return NextResponse.json({ success: true, settings })

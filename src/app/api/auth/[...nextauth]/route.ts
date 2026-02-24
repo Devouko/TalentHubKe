@@ -2,6 +2,7 @@ import NextAuth, { type NextAuthOptions } from 'next-auth'
 import CredentialsProvider from 'next-auth/providers/credentials'
 import bcrypt from 'bcryptjs'
 import { prisma } from '@/lib/prisma'
+import type { JWT } from 'next-auth/jwt'
 
 export const authOptions: NextAuthOptions = {
   providers: [
@@ -53,7 +54,10 @@ export const authOptions: NextAuthOptions = {
             sellerStatus: user.sellerStatus
           }
         } catch (error) {
-          console.error('Auth error:', error)
+          // Sanitize error for production
+          if (process.env.NODE_ENV === 'development') {
+            console.error('Auth error:', error)
+          }
           return null
         }
       }
@@ -67,7 +71,7 @@ export const authOptions: NextAuthOptions = {
     maxAge: 2 * 60 * 60
   },
   callbacks: {
-    async jwt({ token, user }) {
+    async jwt({ token, user }): Promise<JWT> {
       if (user) {
         token.userType = user.userType
         token.isVerified = user.isVerified
@@ -87,7 +91,6 @@ export const authOptions: NextAuthOptions = {
       return session
     },
     async redirect({ url, baseUrl, token }) {
-      // Handle sign-in redirects based on user type
       if (url === baseUrl || url === `${baseUrl}/` || url === `${baseUrl}/auth/signin`) {
         if (token?.userType === 'ADMIN') {
           return `${baseUrl}/admin`
@@ -98,11 +101,9 @@ export const authOptions: NextAuthOptions = {
         return `${baseUrl}/dashboard`
       }
       
-      // Allow same-origin redirects
       if (url.startsWith('/')) return `${baseUrl}${url}`
       if (new URL(url).origin === baseUrl) return url
       
-      // Default to dashboard for authenticated users
       return `${baseUrl}/dashboard`
     }
   },

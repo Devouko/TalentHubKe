@@ -4,6 +4,7 @@ import React, { createContext, useContext, useState, useEffect, ReactNode } from
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import { CartItem, PaymentMethod } from '../types/cart.types';
+import { toast } from 'sonner';
 
 interface CartContextType {
   cart: CartItem[];
@@ -29,27 +30,39 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('card');
 
   const refreshCart = async () => {
-    if (!session?.user?.id) return;
+    if (!session?.user?.id) {
+      setCart([]);
+      return;
+    }
     
     try {
       const response = await fetch('/api/cart');
-      if (response.ok) {
-        const data = await response.json();
+      
+      if (!response.ok) {
+        setCart([]);
+        return;
+      }
+      
+      const data = await response.json();
+      if (Array.isArray(data.cart)) {
         setCart(data.cart.map((item: any) => ({
           id: item.productId,
           gigId: item.productId,
-          title: item.product.title,
+          title: item.product?.title || 'Product',
           seller: 'Digital Store',
-          price: item.product.price,
+          price: item.product?.price || 0,
           quantity: item.quantity,
           deliveryTime: 0,
-          thumbnail: item.product.images[0] || '',
+          thumbnail: item.product?.images?.[0] || '',
           tier: 'basic' as const,
           category: 'Digital Products'
         })));
+      } else {
+        setCart([]);
       }
     } catch (error) {
       console.error('Failed to refresh cart:', error);
+      setCart([]);
     }
   };
 
@@ -73,11 +86,17 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
         })
       });
       
-      if (response.ok) {
-        await refreshCart();
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to add to cart');
       }
+      
+      await refreshCart();
+      toast.success('Item added to cart');
     } catch (error) {
       console.error('Failed to add to cart:', error);
+      toast.error(error instanceof Error ? error.message : 'Failed to add to cart');
+      throw error;
     }
   };
 
@@ -122,21 +141,26 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
     if (!session?.user?.id) return;
     
     try {
-      // Remove all items from cart
-      for (const item of cart) {
-        await fetch(`/api/cart?productId=${item.id}`, {
-          method: 'DELETE'
-        });
+      const response = await fetch('/api/cart/clear', {
+        method: 'DELETE'
+      });
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to clear cart');
       }
+      
       setCart([]);
+      toast.success('Cart cleared');
     } catch (error) {
       console.error('Failed to clear cart:', error);
+      toast.error('Failed to clear cart');
     }
   };
 
   const goToCheckout = () => {
     if (cart.length === 0) {
-      alert('Your cart is empty');
+      toast.error('Your cart is empty');
       return;
     }
     router.push('/checkout');

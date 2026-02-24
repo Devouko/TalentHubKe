@@ -5,17 +5,14 @@ import { prisma } from '@/lib/prisma'
 
 export async function GET() {
   try {
-    let settings = await prisma.platformSettings.findUnique({
-      where: { id: 'default' }
+    // Return default settings since platformSettings table doesn't exist
+    return NextResponse.json({
+      id: 'default',
+      platformName: 'TalentHub',
+      platformTagline: 'Talent Marketplace that developers love',
+      primaryColor: '#10b981',
+      secondaryColor: '#14b8a6'
     })
-    
-    if (!settings) {
-      settings = await prisma.platformSettings.create({
-        data: { id: 'default' }
-      })
-    }
-    
-    return NextResponse.json(settings)
   } catch (error) {
     return NextResponse.json({ error: 'Failed to fetch settings' }, { status: 500 })
   }

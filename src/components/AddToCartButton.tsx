@@ -4,7 +4,8 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { ShoppingCart, Check } from 'lucide-react'
 import { useCart } from '@/app/context/CartContext'
-import { CartItem } from '../app/types/cart.types'
+import { CartItem } from '@/app/types/cart.types'
+import { toast } from 'sonner'
 
 interface AddToCartButtonProps {
   product: {
@@ -42,6 +43,8 @@ export default function AddToCartButton({ product, className = '' }: AddToCartBu
       setIsAdding(false)
       setIsAdded(true)
       
+      toast.success('Added to cart!')
+      
       setTimeout(() => {
         setIsAdded(false)
         router.push('/checkout')
@@ -49,7 +52,7 @@ export default function AddToCartButton({ product, className = '' }: AddToCartBu
     } catch (error) {
       console.error('Add to cart failed:', error)
       setIsAdding(false)
-      alert('Failed to add to cart. Please try again.')
+      toast.error('Failed to add to cart. Please try again.')
     }
   }
 

@@ -20,9 +20,22 @@ export default function AdminSettingsPage() {
     setSettings(prev => ({ ...prev, [key]: value }))
   }
 
-  const saveSettings = () => {
-    localStorage.setItem('admin-settings', JSON.stringify(settings))
-    alert('Settings saved successfully!')
+  const saveSettings = async () => {
+    try {
+      const response = await fetch('/api/admin/settings', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(settings)
+      })
+      if (response.ok) {
+        alert('Settings saved successfully!')
+      } else {
+        alert('Failed to save settings')
+      }
+    } catch (error) {
+      console.error('Save error:', error)
+      alert('Error saving settings')
+    }
   }
 
   return (

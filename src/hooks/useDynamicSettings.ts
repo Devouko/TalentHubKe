@@ -10,8 +10,8 @@ export function usePlatformSettings() {
 
   useEffect(() => {
     fetch('/api/admin/platform')
-      .then(res => res.json())
-      .then(data => setSettings(data))
+      .then(res => res.ok ? res.json() : null)
+      .then(data => data && setSettings(data))
       .catch(() => {})
   }, [])
 
@@ -23,8 +23,8 @@ export function useCategories() {
 
   useEffect(() => {
     fetch('/api/admin/categories')
-      .then(res => res.json())
-      .then(data => setCategories(data.filter(c => c.isActive)))
+      .then(res => res.ok ? res.json() : [])
+      .then(data => Array.isArray(data) && setCategories(data.filter(c => c.isActive)))
       .catch(() => {})
   }, [])
 
@@ -36,8 +36,8 @@ export function useOffers() {
 
   useEffect(() => {
     fetch('/api/admin/offers')
-      .then(res => res.json())
-      .then(data => setOffers(data))
+      .then(res => res.ok ? res.json() : [])
+      .then(data => Array.isArray(data) && setOffers(data))
       .catch(() => {})
   }, [])
 

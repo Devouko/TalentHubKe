@@ -7,14 +7,14 @@ import AdminSidebarLayout from '../AdminSidebarLayout'
 interface SellerApplication {
   id: string
   userId: string
-  category: string
-  skills: string
+  businessName: string
+  skills: string[]
   experience: string
-  portfolio: string
+  portfolio: string[]
   description: string
   status: 'PENDING' | 'APPROVED' | 'REJECTED'
   createdAt: string
-  user: {
+  users: {
     name: string
     email: string
   }
@@ -30,7 +30,7 @@ export default function SellersPage() {
 
   const fetchApplications = async () => {
     try {
-      const response = await fetch('/api/admin/seller-applications')
+      const response = await fetch('/api/admin/sellers')
       if (response.ok) {
         const data = await response.json()
         setApplications(data)
@@ -44,10 +44,13 @@ export default function SellersPage() {
 
   const updateApplicationStatus = async (id: string, status: 'APPROVED' | 'REJECTED') => {
     try {
-      const response = await fetch(`/api/admin/seller-applications/${id}`, {
-        method: 'PATCH',
+      const response = await fetch('/api/admin/sellers', {
+        method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ status })
+        body: JSON.stringify({ 
+          applicationId: id, 
+          action: status === 'APPROVED' ? 'approve' : 'reject' 
+        })
       })
       if (response.ok) {
         fetchApplications()
@@ -77,8 +80,9 @@ export default function SellersPage() {
                 <div key={app.id} className="bg-gray-800 rounded-xl p-6">
                   <div className="flex items-start justify-between mb-4">
                     <div>
-                      <h3 className="text-xl font-semibold text-white">{app.user.name}</h3>
-                      <p className="text-gray-400">{app.user.email}</p>
+                      <h3 className="text-xl font-semibold text-white">{app.users.name}</h3>
+                      <p className="text-gray-400">{app.users.email}</p>
+                      <p className="text-gray-300 mt-2">Business: {app.businessName}</p>
                       <span className={`inline-block px-3 py-1 rounded-full text-sm font-medium mt-2 ${
                         app.status === 'APPROVED' ? 'bg-green-600 text-white' :
                         app.status === 'REJECTED' ? 'bg-red-600 text-white' :
@@ -111,14 +115,10 @@ export default function SellersPage() {
                   
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
                     <div>
-                      <p className="text-gray-400">Category</p>
-                      <p className="text-white">{app.category}</p>
+                      <p className="text-gray-400">Skills</p>
+                      <p className="text-white">{app.skills.join(', ')}</p>
                     </div>
                     <div>
-                      <p className="text-gray-400">Skills</p>
-                      <p className="text-white">{app.skills}</p>
-                    </div>
-                    <div className="md:col-span-2">
                       <p className="text-gray-400">Experience</p>
                       <p className="text-white">{app.experience}</p>
                     </div>
@@ -126,11 +126,15 @@ export default function SellersPage() {
                       <p className="text-gray-400">Description</p>
                       <p className="text-white">{app.description}</p>
                     </div>
-                    <div>
+                    <div className="md:col-span-2">
                       <p className="text-gray-400">Portfolio</p>
-                      <a href={app.portfolio} target="_blank" rel="noopener noreferrer" className="text-blue-400 hover:text-blue-300">
-                        {app.portfolio}
-                      </a>
+                      <div className="flex flex-wrap gap-2">
+                        {app.portfolio.map((link, i) => (
+                          <a key={i} href={link} target="_blank" rel="noopener noreferrer" className="text-blue-400 hover:text-blue-300">
+                            Link {i + 1}
+                          </a>
+                        ))}
+                      </div>
                     </div>
                   </div>
                 </div>

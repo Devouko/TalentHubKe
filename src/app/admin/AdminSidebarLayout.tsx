@@ -77,12 +77,36 @@ export default function AdminSidebarLayout({ children }: AdminSidebarLayoutProps
               <span>Users</span>
             </Link>
             <Link href="/admin/sellers" className="flex items-center gap-3 p-3 rounded-lg hover:bg-gray-800 text-gray-300 hover:text-white">
-              <Users className="w-5 h-5" />
+              <Store className="w-5 h-5" />
               <span>Sellers</span>
+            </Link>
+            <Link href="/admin/gigs" className="flex items-center gap-3 p-3 rounded-lg hover:bg-gray-800 text-gray-300 hover:text-white">
+              <Briefcase className="w-5 h-5" />
+              <span>Gigs</span>
             </Link>
             <Link href="/admin/products" className="flex items-center gap-3 p-3 rounded-lg hover:bg-gray-800 text-gray-300 hover:text-white">
               <Package className="w-5 h-5" />
               <span>Products</span>
+            </Link>
+            <Link href="/admin/opportunities" className="flex items-center gap-3 p-3 rounded-lg hover:bg-gray-800 text-gray-300 hover:text-white">
+              <PlusCircle className="w-5 h-5" />
+              <span>Opportunities</span>
+            </Link>
+            <Link href="/admin/escrow" className="flex items-center gap-3 p-3 rounded-lg hover:bg-gray-800 text-gray-300 hover:text-white">
+              <DollarSign className="w-5 h-5" />
+              <span>Escrow</span>
+            </Link>
+            <Link href="/admin/reviews" className="flex items-center gap-3 p-3 rounded-lg hover:bg-gray-800 text-gray-300 hover:text-white">
+              <Star className="w-5 h-5" />
+              <span>Reviews</span>
+            </Link>
+            <Link href="/admin/messages" className="flex items-center gap-3 p-3 rounded-lg hover:bg-gray-800 text-gray-300 hover:text-white">
+              <MessageSquare className="w-5 h-5" />
+              <span>Messages</span>
+            </Link>
+            <Link href="/admin/settings" className="flex items-center gap-3 p-3 rounded-lg hover:bg-gray-800 text-gray-300 hover:text-white">
+              <Settings className="w-5 h-5" />
+              <span>Settings</span>
             </Link>
             <Link href="/admin/theme" className="flex items-center gap-3 p-3 rounded-lg hover:bg-gray-800 text-gray-300 hover:text-white">
               <Palette className="w-5 h-5" />

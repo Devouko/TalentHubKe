@@ -1,39 +1,44 @@
-import { NextResponse } from 'next/server'
-import { prisma } from '../../../../lib/prisma'
+import { NextRequest, NextResponse } from 'next/server'
+import { getServerSession } from 'next-auth'
+import { authOptions } from '@/app/api/auth/[...nextauth]/route'
+import { prisma } from '@/lib/prisma'
 
 export async function GET() {
   try {
-    const applications = await prisma.sellerApplication.findMany({
+    const session = await getServerSession(authOptions)
+    if (!session || session.user.userType !== 'ADMIN') {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
+    const applications = await prisma.seller_applications.findMany({
       include: {
-        user: {
-          select: {
-            id: true,
-            name: true,
-            email: true,
-            sellerStatus: true
-          }
-        }
+        users: { select: { id: true, name: true, email: true } }
       },
       orderBy: { createdAt: 'desc' }
     })
     
     return NextResponse.json(applications)
   } catch (error) {
+    console.error('Applications fetch error:', error)
     return NextResponse.json({ error: 'Failed to fetch applications' }, { status: 500 })
   }
 }
 
-export async function PUT(request: Request) {
+export async function PUT(request: NextRequest) {
   try {
+    const session = await getServerSession(authOptions)
+    if (!session || session.user.userType !== 'ADMIN') {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
     const { applicationId, action, adminNotes } = await request.json()
     
     if (!applicationId || !action) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 })
     }
 
-    const application = await prisma.sellerApplication.findUnique({
-      where: { id: applicationId },
-      include: { user: true }
+    const application = await prisma.seller_applications.findUnique({
+      where: { id: applicationId }
     })
 
     if (!application) {
@@ -44,21 +49,19 @@ export async function PUT(request: Request) {
     const sellerStatus = action === 'approve' ? 'APPROVED' : 'REJECTED'
 
     const [updatedApplication, updatedUser] = await prisma.$transaction([
-      prisma.sellerApplication.update({
+      prisma.seller_applications.update({
         where: { id: applicationId },
-        data: {
-          status,
-          adminNotes: adminNotes || null
-        }
+        data: { status, adminNotes: adminNotes || null, updatedAt: new Date() }
       }),
-      prisma.user.update({
+      prisma.users.update({
         where: { id: application.userId },
-        data: { sellerStatus }
+        data: { sellerStatus, userType: action === 'approve' ? 'FREELANCER' : undefined }
       })
     ])
 
     return NextResponse.json({ application: updatedApplication, user: updatedUser })
   } catch (error) {
+    console.error('Application update error:', error)
     return NextResponse.json({ error: 'Failed to update application' }, { status: 500 })
   }
 }

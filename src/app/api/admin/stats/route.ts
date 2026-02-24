@@ -1,94 +1,82 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { prisma } from '../../../../lib/prisma'
+import { getServerSession } from 'next-auth'
+import { authOptions } from '@/app/api/auth/[...nextauth]/route'
+import { prisma } from '@/lib/prisma'
 
-/**
- * GET /api/admin/stats - Fetch admin dashboard statistics
- */
-export async function GET(request: NextRequest) {
+export async function GET() {
   try {
+    const session = await getServerSession(authOptions)
+    if (!session || session.user.userType !== 'ADMIN') {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
     const [
       totalUsers,
       activeGigs,
       totalOrders,
-      completedOrders,
       pendingOrders,
+      completedOrders,
       activeSellers,
       totalRevenue,
-      recentUsers,
-      recentOrders,
-      recentGigs
+      totalProducts,
+      pendingApplications,
+      escrowPending,
+      disputedOrders,
+      totalMessages,
+      unreadNotifications
     ] = await Promise.all([
-      prisma.user.count(),
-      prisma.gig.count({ where: { isActive: true } }),
-      prisma.order.count(),
-      prisma.order.count({ where: { status: 'COMPLETED' } }),
-      prisma.order.count({ where: { status: 'PENDING' } }),
-      prisma.user.count({ where: { sellerStatus: 'APPROVED' } }),
-      prisma.order.aggregate({
+      prisma.users.count(),
+      prisma.gigs.count({ where: { isActive: true } }),
+      prisma.orders.count(),
+      prisma.orders.count({ where: { status: 'PENDING' } }),
+      prisma.orders.count({ where: { status: 'COMPLETED' } }),
+      prisma.users.count({ where: { userType: { in: ['FREELANCER', 'AGENCY'] } } }),
+      prisma.orders.aggregate({
         where: { status: 'COMPLETED' },
         _sum: { totalAmount: true }
       }),
-      prisma.user.findMany({
-        take: 5,
-        orderBy: { createdAt: 'desc' },
-        select: { id: true, name: true, email: true, createdAt: true }
-      }),
-      prisma.order.findMany({
-        take: 5,
-        orderBy: { createdAt: 'desc' },
-        select: { 
-          id: true, 
-          totalAmount: true, 
-          status: true, 
-          createdAt: true,
-          buyer: { select: { name: true } }
-        }
-      }),
-      prisma.gig.findMany({
-        take: 5,
-        orderBy: { createdAt: 'desc' },
-        select: { 
-          id: true, 
-          title: true, 
-          createdAt: true,
-          seller: { select: { name: true } }
-        }
-      })
+      prisma.products.count({ where: { isActive: true } }),
+      prisma.seller_applications.count({ where: { status: 'PENDING' } }),
+      prisma.escrow_transactions.count({ where: { status: 'PENDING' } }),
+      prisma.orders.count({ where: { status: 'DISPUTED' } }),
+      prisma.messages.count(),
+      prisma.notifications.count({ where: { isRead: false } })
     ])
 
-    const stats = {
+    const recentActivity = await prisma.orders.findMany({
+      take: 10,
+      orderBy: { createdAt: 'desc' },
+      include: {
+        users: { select: { name: true } },
+        gigs: { select: { title: true } }
+      }
+    })
+
+    const formattedActivity = recentActivity.map(order => ({
+      type: 'order',
+      title: `New Order: ${order.gigs?.title || 'Product'}`,
+      description: `Order by ${order.users.name}`,
+      time: order.createdAt
+    }))
+
+    return NextResponse.json({
       totalUsers,
       activeGigs,
       totalOrders,
-      completedOrders,
       pendingOrders,
+      completedOrders,
       activeSellers,
       totalRevenue: totalRevenue._sum.totalAmount || 0,
-      recentActivity: [
-        ...recentUsers.map(user => ({
-          type: 'user',
-          title: 'New user registered',
-          description: `${user.name || user.email} joined the platform`,
-          time: user.createdAt
-        })),
-        ...recentOrders.map(order => ({
-          type: 'order',
-          title: 'New order received',
-          description: `KES ${order.totalAmount.toLocaleString()} from ${order.buyer.name}`,
-          time: order.createdAt
-        })),
-        ...recentGigs.map(gig => ({
-          type: 'gig',
-          title: 'New gig created',
-          description: `${gig.title} by ${gig.seller.name}`,
-          time: gig.createdAt
-        }))
-      ].sort((a, b) => new Date(b.time).getTime() - new Date(a.time).getTime()).slice(0, 10)
-    }
-
-    return NextResponse.json(stats)
+      totalProducts,
+      pendingApplications,
+      escrowPending,
+      disputedOrders,
+      totalMessages,
+      unreadNotifications,
+      recentActivity: formattedActivity
+    })
   } catch (error) {
-    console.error('Error fetching admin stats:', error)
-    return NextResponse.json({ error: 'Failed to fetch admin stats' }, { status: 500 })
+    console.error('Admin stats error:', error)
+    return NextResponse.json({ error: 'Failed to fetch stats' }, { status: 500 })
   }
 }

@@ -5,10 +5,8 @@ import { prisma } from '@/lib/prisma'
 
 export async function GET() {
   try {
-    const categories = await prisma.category.findMany({
-      orderBy: { order: 'asc' }
-    })
-    return NextResponse.json(categories)
+    // Return empty array since category table doesn't exist
+    return NextResponse.json([])
   } catch (error) {
     return NextResponse.json({ error: 'Failed to fetch categories' }, { status: 500 })
   }

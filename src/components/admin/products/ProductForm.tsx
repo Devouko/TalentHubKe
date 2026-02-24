@@ -4,6 +4,8 @@ import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { Upload, X } from 'lucide-react'
 import { slugify, generateSKU } from '@/lib/utils/product-helpers'
+import { CATEGORY_OPTIONS, CATEGORY_DETAILS } from '@/constants/categories'
+import { toast } from 'sonner'
 
 interface ProductFormProps {
   mode: 'create' | 'edit'
@@ -14,7 +16,10 @@ export default function ProductForm({ mode, initialData }: ProductFormProps) {
   const router = useRouter()
   const [loading, setLoading] = useState(false)
   const [uploading, setUploading] = useState(false)
-  const [categories, setCategories] = useState<any[]>([])
+  const [categories, setCategories] = useState<any[]>(CATEGORY_OPTIONS.map(cat => ({
+    id: cat,
+    name: CATEGORY_DETAILS[cat].name
+  })))
   const [imageUrls, setImageUrls] = useState<string[]>(initialData?.images?.map((img: any) => img.url) || [])
   const [formData, setFormData] = useState({
     name: initialData?.name || '',
@@ -39,17 +44,8 @@ export default function ProductForm({ mode, initialData }: ProductFormProps) {
   })
 
   useEffect(() => {
-    fetchCategories()
+    // Categories are now loaded from constants
   }, [])
-
-  const fetchCategories = async () => {
-    try {
-      const res = await fetch('/api/admin/products/categories?isActive=true')
-      if (res.ok) setCategories(await res.json())
-    } catch (error) {
-      console.error('Failed to fetch categories:', error)
-    }
-  }
 
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files
@@ -73,18 +69,29 @@ export default function ProductForm({ mode, initialData }: ProductFormProps) {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    
+    if (!formData.categoryId) {
+      toast.error('Please select a category')
+      return
+    }
+    
+    if (imageUrls.length === 0) {
+      toast.error('Please upload at least one product image')
+      return
+    }
+    
     setLoading(true)
 
     try {
       const payload = {
         ...formData,
         price: Number(formData.price),
-        comparePrice: formData.comparePrice ? Number(formData.comparePrice) : undefined,
-        costPrice: formData.costPrice ? Number(formData.costPrice) : undefined,
+        comparePrice: formData.comparePrice ? Number(formData.comparePrice) : null,
+        costPrice: formData.costPrice ? Number(formData.costPrice) : null,
         quantity: Number(formData.quantity),
         lowStockThreshold: Number(formData.lowStockThreshold),
         tags: formData.tags.split(',').map(t => t.trim()).filter(Boolean),
-        categoryId: formData.categoryId || undefined,
+        categoryId: formData.categoryId || null,
         images: imageUrls.map((url, index) => ({ url, alt: formData.name, position: index }))
       }
 
@@ -97,14 +104,25 @@ export default function ProductForm({ mode, initialData }: ProductFormProps) {
         body: JSON.stringify(payload)
       })
 
+      const responseData = await res.json()
+
       if (res.ok) {
+        toast.success(`Product ${mode === 'create' ? 'created' : 'updated'} successfully`)
         router.push('/admin/products')
+        router.refresh()
       } else {
-        const error = await res.json()
-        alert(error.error || 'Failed to save product')
+        if (responseData.details && Array.isArray(responseData.details)) {
+          const errorMessages = responseData.details.map((e: any) => {
+            const path = Array.isArray(e.path) ? e.path.join('.') : String(e.path || '')
+            return `${path}: ${e.message}`
+          }).join(', ')
+          toast.error(`Validation failed: ${errorMessages}`)
+        } else {
+          toast.error(responseData.error || 'Failed to save product')
+        }
       }
     } catch (error) {
-      alert('Failed to save product')
+      toast.error('Failed to save product: ' + (error instanceof Error ? error.message : 'Unknown error'))
     } finally {
       setLoading(false)
     }
@@ -146,8 +164,9 @@ export default function ProductForm({ mode, initialData }: ProductFormProps) {
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-[#cbd5e1] mb-2">Category</label>
+            <label className="block text-sm font-medium text-[#cbd5e1] mb-2">Category *</label>
             <select
+              required
               value={formData.categoryId}
               onChange={(e) => setFormData({ ...formData, categoryId: e.target.value })}
               className="w-full px-4 py-2 bg-[#0f172a] border border-[#334155] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#10B981] text-white"

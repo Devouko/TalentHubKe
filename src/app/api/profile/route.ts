@@ -15,7 +15,7 @@ const profileSelect = {
   isVerified: true,
   sellerStatus: true,
   userType: true
-} satisfies Prisma.UserSelect
+} satisfies Prisma.UsersSelect
 
 const updateProfileSchema = z.object({
   name: z.string().min(1).max(100).optional(),
@@ -30,7 +30,7 @@ export async function GET() {
   if (error) return error
 
   try {
-    const user = await prisma.user.findUniqueOrThrow({
+    const user = await prisma.users.findUniqueOrThrow({
       where: { id: session!.user.id },
       select: profileSelect
     })
@@ -53,7 +53,7 @@ export async function PUT(req: Request) {
     const body = await req.json()
     const validatedData = updateProfileSchema.parse(body)
 
-    const updatedUser = await prisma.user.update({
+    const updatedUser = await prisma.users.update({
       where: { id: session!.user.id },
       data: validatedData,
       select: profileSelect

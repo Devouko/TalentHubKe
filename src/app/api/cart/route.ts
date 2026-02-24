@@ -2,12 +2,14 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { prisma } from '@/lib/prisma'
 import { authOptions } from '../auth/[...nextauth]/route'
+import { addToCartSchema, removeFromCartSchema } from '@/lib/validations/cart'
+import { z } from 'zod'
 
 export async function GET(request: NextRequest) {
   try {
     const session = await getServerSession(authOptions)
     if (!session?.user?.id) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      return NextResponse.json({ cart: [] })
     }
 
     const cart = await prisma.cart.findMany({
@@ -23,11 +25,12 @@ export async function GET(request: NextRequest) {
           }
         }
       }
-    })
+    }).catch(() => [])
 
-    return NextResponse.json({ cart })
+    return NextResponse.json({ cart: cart || [] })
   } catch (error) {
-    return NextResponse.json({ error: 'Failed to fetch cart' }, { status: 500 })
+    console.error('Cart fetch error:', error)
+    return NextResponse.json({ cart: [] })
   }
 }
 
@@ -38,26 +41,52 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    const { productId, quantity } = await request.json()
+    const body = await request.json()
+    const validatedData = addToCartSchema.parse(body)
+    
+    // Check if product exists
+    const product = await prisma.products.findUnique({
+      where: { id: validatedData.productId },
+      select: { id: true, stock: true }
+    })
+    
+    if (!product) {
+      return NextResponse.json({ error: 'Product not found' }, { status: 404 })
+    }
+    
+    if (product.stock < validatedData.quantity) {
+      return NextResponse.json({ error: 'Insufficient stock' }, { status: 400 })
+    }
 
     const cartItem = await prisma.cart.upsert({
       where: {
         userId_productId: {
           userId: session.user.id,
-          productId
+          productId: validatedData.productId
         }
       },
-      update: { quantity },
+      update: { quantity: validatedData.quantity },
       create: {
         userId: session.user.id,
-        productId,
-        quantity
+        productId: validatedData.productId,
+        quantity: validatedData.quantity
       }
     })
 
     return NextResponse.json({ cartItem })
   } catch (error) {
-    return NextResponse.json({ error: 'Failed to add to cart' }, { status: 500 })
+    if (error instanceof z.ZodError) {
+      return NextResponse.json({ 
+        error: 'Validation failed',
+        details: error.errors
+      }, { status: 400 })
+    }
+    
+    console.error('Cart add error:', error)
+    return NextResponse.json({ 
+      error: 'Failed to add to cart',
+      details: process.env.NODE_ENV === 'development' ? error : undefined
+    }, { status: 500 })
   }
 }
 
@@ -71,21 +100,30 @@ export async function DELETE(request: NextRequest) {
     const { searchParams } = new URL(request.url)
     const productId = searchParams.get('productId')
 
-    if (!productId) {
-      return NextResponse.json({ error: 'Product ID required' }, { status: 400 })
-    }
+    const validatedData = removeFromCartSchema.parse({ productId })
 
     await prisma.cart.delete({
       where: {
         userId_productId: {
           userId: session.user.id,
-          productId
+          productId: validatedData.productId
         }
       }
     })
 
     return NextResponse.json({ success: true })
   } catch (error) {
-    return NextResponse.json({ error: 'Failed to remove from cart' }, { status: 500 })
+    if (error instanceof z.ZodError) {
+      return NextResponse.json({ 
+        error: 'Validation failed',
+        details: error.errors
+      }, { status: 400 })
+    }
+    
+    console.error('Cart remove error:', error)
+    return NextResponse.json({ 
+      error: 'Failed to remove from cart',
+      details: process.env.NODE_ENV === 'development' ? error : undefined
+    }, { status: 500 })
   }
 }

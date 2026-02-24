@@ -135,6 +135,42 @@ export default function AdminPage() {
                 <TrendingUp className="w-8 h-8 text-orange-200" />
               </div>
             </div>
+            <div className="bg-gradient-to-r from-yellow-600 to-amber-600 p-6 rounded-xl">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-yellow-100">Products</p>
+                  <p className="text-2xl font-bold text-white">{stats?.totalProducts || 0}</p>
+                </div>
+                <ShoppingCart className="w-8 h-8 text-yellow-200" />
+              </div>
+            </div>
+            <div className="bg-gradient-to-r from-red-600 to-rose-600 p-6 rounded-xl">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-red-100">Pending Apps</p>
+                  <p className="text-2xl font-bold text-white">{stats?.pendingApplications || 0}</p>
+                </div>
+                <Users className="w-8 h-8 text-red-200" />
+              </div>
+            </div>
+            <div className="bg-gradient-to-r from-indigo-600 to-purple-600 p-6 rounded-xl">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-indigo-100">Escrow Pending</p>
+                  <p className="text-2xl font-bold text-white">{stats?.escrowPending || 0}</p>
+                </div>
+                <DollarSign className="w-8 h-8 text-indigo-200" />
+              </div>
+            </div>
+            <div className="bg-gradient-to-r from-pink-600 to-red-600 p-6 rounded-xl">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-pink-100">Disputes</p>
+                  <p className="text-2xl font-bold text-white">{stats?.disputedOrders || 0}</p>
+                </div>
+                <MessageCircle className="w-8 h-8 text-pink-200" />
+              </div>
+            </div>
           </div>
 
           <TradeCharts />

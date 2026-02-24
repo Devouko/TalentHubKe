@@ -53,8 +53,11 @@ export default function AllTalent() {
     
     try {
       const response = await fetch('/api/users?type=talent')
+      if (!response.ok) {
+        throw new Error('Failed to fetch talents')
+      }
       const data = await response.json()
-      setTalents(data || [])
+      setTalents(Array.isArray(data) ? data : [])
     } catch (error) {
       console.error('Error fetching talents:', error)
       setTalents([])
@@ -143,15 +146,15 @@ export default function AllTalent() {
   }
 
   return (
-    <div className="min-h-screen bg-black text-white">
+    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 text-white">
       <div className="max-w-7xl mx-auto px-4 py-8">
         <div className="mb-8">
           <div className="flex items-center justify-between mb-4">
-            <h1 className="text-3xl font-bold">All Talent</h1>
+            <h1 className="text-3xl font-bold bg-gradient-to-r from-emerald-400 to-cyan-400 bg-clip-text text-transparent">All Talent</h1>
             <button
               onClick={() => manualRefresh()}
               disabled={refreshing}
-              className={`px-4 py-2 bg-purple-600 hover:bg-purple-700 disabled:opacity-50 rounded-lg text-sm font-medium transition-colors flex items-center gap-2 ${
+              className={`px-4 py-2 bg-white/10 hover:bg-white/20 backdrop-blur-xl border border-white/20 disabled:opacity-50 rounded-lg text-sm font-medium transition-all flex items-center gap-2 ${
                 refreshing ? 'cursor-not-allowed' : 'cursor-pointer'
               }`}
             >
@@ -168,7 +171,7 @@ export default function AllTalent() {
                 placeholder="Search talent..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full pl-10 pr-4 py-3 bg-gray-800 border border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full pl-10 pr-4 py-3 bg-white/10 backdrop-blur-xl border border-white/20 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 text-white placeholder-gray-400"
               />
             </div>
             
@@ -177,10 +180,10 @@ export default function AllTalent() {
                 <button
                   key={skill}
                   onClick={() => setSelectedSkill(skill)}
-                  className={`px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap ${
+                  className={`px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap transition-all ${
                     selectedSkill === skill
-                      ? 'bg-blue-600 text-white'
-                      : 'bg-gray-800 text-gray-300 hover:bg-gray-700'
+                      ? 'bg-gradient-to-r from-emerald-500 to-cyan-500 text-white'
+                      : 'bg-white/10 backdrop-blur-xl border border-white/20 text-gray-300 hover:bg-white/20'
                   }`}
                 >
                   {skill.charAt(0).toUpperCase() + skill.slice(1)}
@@ -198,9 +201,9 @@ export default function AllTalent() {
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {filteredTalents.map(talent => (
-              <div key={talent.id} className="bg-gray-800 border border-gray-700 rounded-xl p-6 hover:border-blue-500 transition-colors">
+              <div key={talent.id} className="bg-white/10 backdrop-blur-xl border border-white/20 rounded-xl p-6 hover:border-emerald-500 transition-all shadow-lg hover:shadow-emerald-500/20">
                 <div className="flex items-center gap-4 mb-4">
-                  <div className="w-16 h-16 bg-gradient-to-r from-blue-600 to-cyan-600 rounded-full flex items-center justify-center overflow-hidden">
+                  <div className="w-16 h-16 bg-gradient-to-r from-emerald-500 to-cyan-500 rounded-full flex items-center justify-center overflow-hidden shadow-lg">
                     {talent.profileImage ? (
                       <img src={talent.profileImage} alt={talent.name} className="w-full h-full object-cover" />
                     ) : (
@@ -271,7 +274,7 @@ export default function AllTalent() {
                     <button 
                       onClick={() => viewProfile(talent.id)}
                       disabled={profileLoading}
-                      className="px-4 py-2 bg-gray-700 hover:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed rounded-lg text-sm font-medium transition-colors flex items-center gap-1"
+                      className="px-4 py-2 bg-white/10 hover:bg-white/20 backdrop-blur-xl border border-white/20 disabled:opacity-50 disabled:cursor-not-allowed rounded-lg text-sm font-medium transition-all flex items-center gap-1"
                     >
                       <Eye className="w-4 h-4" />
                       {profileLoading ? 'Loading...' : 'View'}
@@ -279,7 +282,7 @@ export default function AllTalent() {
                     <button 
                       onClick={() => hireNow(talent)}
                       disabled={hireLoading === talent.id}
-                      className="px-4 py-2 bg-purple-600 hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed rounded-lg text-sm font-medium transition-colors flex items-center gap-1"
+                      className="px-4 py-2 bg-gradient-to-r from-emerald-500 to-cyan-500 hover:from-emerald-600 hover:to-cyan-600 disabled:opacity-50 disabled:cursor-not-allowed rounded-lg text-sm font-medium transition-all flex items-center gap-1 shadow-lg"
                     >
                       <MessageCircle className="w-4 h-4" />
                       {hireLoading === talent.id ? 'Hiring...' : 'Hire'}
@@ -304,7 +307,7 @@ export default function AllTalent() {
         )}
         
         {refreshing && (
-          <div className="fixed top-4 right-4 bg-gray-800 border border-gray-700 rounded-lg p-3 shadow-lg z-50">
+          <div className="fixed top-4 right-4 bg-white/10 backdrop-blur-xl border border-white/20 rounded-lg p-3 shadow-lg z-50">
             <div className="flex items-center gap-2 text-sm text-white">
               <RefreshCw className="w-4 h-4 animate-spin" />
               <span>Refreshing talent...</span>
@@ -315,12 +318,12 @@ export default function AllTalent() {
 
       {/* Profile Modal */}
       {selectedProfile && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
-          <div className="bg-gray-800 rounded-xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+          <div className="bg-white/10 backdrop-blur-xl border border-white/20 rounded-xl max-w-4xl w-full max-h-[90vh] overflow-y-auto shadow-2xl">
             <div className="p-6">
               <div className="flex justify-between items-start mb-6">
                 <div className="flex items-center gap-4">
-                  <div className="w-20 h-20 bg-gradient-to-r from-purple-600 to-pink-600 rounded-full flex items-center justify-center overflow-hidden">
+                  <div className="w-20 h-20 bg-gradient-to-r from-emerald-500 to-cyan-500 rounded-full flex items-center justify-center overflow-hidden shadow-lg">
                     {selectedProfile.profileImage ? (
                       <img src={selectedProfile.profileImage} alt={selectedProfile.name} className="w-full h-full object-cover" />
                     ) : (
@@ -357,7 +360,7 @@ export default function AllTalent() {
                     <h3 className="text-lg font-semibold text-white mb-4">Services</h3>
                     <div className="grid gap-4">
                       {selectedProfile.gigs?.map((gig: any) => (
-                        <div key={gig.id} className="bg-gray-700 rounded-lg p-4">
+                        <div key={gig.id} className="bg-white/10 backdrop-blur-xl border border-white/20 rounded-lg p-4">
                           <div className="flex justify-between items-start mb-2">
                             <h4 className="font-medium text-white">{gig.title}</h4>
                             <span className="text-green-400 font-bold">KES {gig.price.toLocaleString()}</span>
@@ -379,7 +382,7 @@ export default function AllTalent() {
                     <h3 className="text-lg font-semibold text-white mb-4">Reviews</h3>
                     <div className="space-y-4">
                       {selectedProfile.reviews?.map((review: any) => (
-                        <div key={review.id} className="bg-gray-700 rounded-lg p-4">
+                        <div key={review.id} className="bg-white/10 backdrop-blur-xl border border-white/20 rounded-lg p-4">
                           <div className="flex items-center gap-3 mb-2">
                             <div className="w-8 h-8 bg-purple-600 rounded-full flex items-center justify-center">
                               <span className="text-xs font-bold">{review.reviewer.name?.[0] || 'U'}</span>
@@ -401,7 +404,7 @@ export default function AllTalent() {
                 </div>
 
                 <div>
-                  <div className="bg-gray-700 rounded-lg p-4 mb-4">
+                  <div className="bg-white/10 backdrop-blur-xl border border-white/20 rounded-lg p-4 mb-4">
                     <h3 className="text-lg font-semibold text-white mb-4">Stats</h3>
                     <div className="space-y-3">
                       <div className="flex justify-between">
@@ -434,7 +437,7 @@ export default function AllTalent() {
                         hireNow(currentProfile)
                       }}
                       disabled={hireLoading === selectedProfile?.id}
-                      className="w-full bg-purple-600 hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed text-white py-3 rounded-lg font-medium transition-colors flex items-center justify-center gap-2"
+                      className="w-full bg-gradient-to-r from-emerald-500 to-cyan-500 hover:from-emerald-600 hover:to-cyan-600 disabled:opacity-50 disabled:cursor-not-allowed text-white py-3 rounded-lg font-medium transition-all flex items-center justify-center gap-2 shadow-lg"
                     >
                       <MessageCircle className="w-4 h-4" />
                       {hireLoading === selectedProfile?.id ? 'Starting...' : 'Start Conversation'}
@@ -442,7 +445,7 @@ export default function AllTalent() {
                     {selectedProfile.phoneNumber && (
                       <a 
                         href={`tel:${selectedProfile.phoneNumber}`}
-                        className="w-full bg-green-600 hover:bg-green-700 text-white py-3 rounded-lg font-medium transition-colors flex items-center justify-center gap-2 no-underline"
+                        className="w-full bg-white/10 hover:bg-white/20 backdrop-blur-xl border border-white/20 text-white py-3 rounded-lg font-medium transition-all flex items-center justify-center gap-2 no-underline"
                       >
                         <Phone className="w-4 h-4" />
                         Call Now
