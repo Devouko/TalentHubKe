@@ -61,52 +61,57 @@ Please confirm availability and payment options.`
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!phoneValid) return
+    if (!phoneValid || loading) return
     
     setLoading(true)
     try {
-      // First create the order
-      const orderResponse = await fetch('/api/orders', {
+      const cleanPhone = phoneNumber.replace(/\s/g, '')
+      
+      const orderResponse = await fetch('/api/checkout', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          items: cart,
-          total: total,
-          phoneNumber: phoneNumber.replace(/\s/g, ''),
+          items: cart.map(item => ({
+            id: item.id,
+            productId: item.id,
+            title: item.title,
+            price: item.price,
+            quantity: item.quantity
+          })),
+          phoneNumber: cleanPhone,
           shippingAddress: notes || 'Digital delivery'
         })
       })
       
       const orderData = await orderResponse.json()
       
-      if (!orderData.success) {
+      if (!orderResponse.ok || !orderData.success) {
         throw new Error(orderData.error || 'Failed to create order')
       }
 
-      // Then initiate M-Pesa payment
       const mpesaResponse = await fetch('/api/mpesa/stkpush', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          phone: phoneNumber.replace(/\s/g, ''),
-          amount: total,
+          phone: cleanPhone,
+          amount: Math.round(total),
           orderId: orderData.order.id,
-          description: `Payment for order ${orderData.order.id}`
+          description: `Order #${orderData.order.id.slice(-8)}`
         })
       })
 
       const mpesaData = await mpesaResponse.json()
       
-      if (mpesaData.success) {
-        alert('Payment request sent to your phone! Please check your M-Pesa and enter your PIN.')
-        clearCart()
+      if (mpesaResponse.ok && mpesaData.success) {
+        alert('✅ Payment request sent! Check your phone and enter M-Pesa PIN to complete payment.')
+        await clearCart()
         onSuccess()
       } else {
         throw new Error(mpesaData.error || 'Payment initiation failed')
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Checkout error:', error)
-      alert(`Payment failed: ${error.message}. Please try again.`)
+      alert(`❌ ${error.message || 'Checkout failed'}. Please try again.`)
     } finally {
       setLoading(false)
     }

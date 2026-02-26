@@ -5,10 +5,13 @@ import { useParams, useRouter } from 'next/navigation'
 import { motion } from 'framer-motion'
 import { Star, Users, Award, MapPin, Mail, Phone, Globe, ArrowLeft, MessageCircle } from 'lucide-react'
 import Link from 'next/link'
+import { ReviewSectionComplete } from '@/components/reviews'
+import { useSession } from 'next-auth/react'
 
 export default function ProfilePage() {
   const params = useParams()
   const router = useRouter()
+  const { data: session } = useSession()
   const [user, setUser] = useState(null)
   const [loading, setLoading] = useState(true)
 
@@ -85,8 +88,8 @@ export default function ProfilePage() {
               <div className="flex flex-wrap gap-4 mb-6">
                 <div className="flex items-center gap-2">
                   <Star className="w-5 h-5 text-yellow-400 fill-yellow-400" />
-                  <span className="font-semibold">{user.rating || 4.8}</span>
-                  <span className="text-slate-600 dark:text-slate-400">({user.reviewCount || 0} reviews)</span>
+                  <span className="font-semibold">{user.sellerRating || 0}</span>
+                  <span className="text-slate-600 dark:text-slate-400">({user.sellerReviewCount || 0} reviews)</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <Users className="w-5 h-5 text-slate-600 dark:text-slate-400" />
@@ -154,6 +157,15 @@ export default function ProfilePage() {
             </p>
           </div>
         </motion.div>
+
+        {/* Seller Reviews Section */}
+        <div className="mt-8">
+          <ReviewSectionComplete
+            type="seller"
+            targetId={params.id as string}
+            canReview={!!session && session.user?.id !== params.id}
+          />
+        </div>
       </div>
     </div>
   )

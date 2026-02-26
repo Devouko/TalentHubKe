@@ -3,7 +3,7 @@
 import { useSession, signOut } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
-import { BarChart3, Users, ShoppingCart, DollarSign, Settings, Palette, MessageSquare, X, Package, LogOut, Briefcase, PlusCircle, Store, FileText, Star, Eye } from 'lucide-react'
+import { BarChart3, Users, ShoppingCart, DollarSign, Settings, Palette, MessageSquare, X, Package, LogOut, Briefcase, PlusCircle, Store, FileText, Star, Eye, UserCheck } from 'lucide-react'
 import Link from 'next/link'
 import { useSidebar } from '../context/SidebarContext'
 
@@ -79,6 +79,10 @@ export default function AdminSidebarLayout({ children }: AdminSidebarLayoutProps
             <Link href="/admin/sellers" className="flex items-center gap-3 p-3 rounded-lg hover:bg-gray-800 text-gray-300 hover:text-white">
               <Store className="w-5 h-5" />
               <span>Sellers</span>
+            </Link>
+            <Link href="/admin/talent" className="flex items-center gap-3 p-3 rounded-lg hover:bg-gray-800 text-gray-300 hover:text-white">
+              <UserCheck className="w-5 h-5" />
+              <span>Talent</span>
             </Link>
             <Link href="/admin/gigs" className="flex items-center gap-3 p-3 rounded-lg hover:bg-gray-800 text-gray-300 hover:text-white">
               <Briefcase className="w-5 h-5" />

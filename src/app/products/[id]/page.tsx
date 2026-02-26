@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation'
 import { ShoppingCart } from 'lucide-react'
 import { useCart } from '@/app/context/CartContext'
 import AddToCartButton from '@/components/AddToCartButton'
+import { ReviewSectionComplete } from '@/components/reviews'
 
 export default function ProductDetail({ params }: { params: { id: string } }) {
   const { data: session } = useSession()
@@ -48,7 +49,7 @@ export default function ProductDetail({ params }: { params: { id: string } }) {
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-slate-900">
       <div className="max-w-7xl mx-auto px-4 py-8">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-12">
           <div>
             {product.images?.[0] && (
               <img
@@ -86,6 +87,12 @@ export default function ProductDetail({ params }: { params: { id: string } }) {
             />
           </div>
         </div>
+
+        <ReviewSectionComplete
+          type="product"
+          targetId={params.id}
+          canReview={!!session}
+        />
       </div>
     </div>
   )

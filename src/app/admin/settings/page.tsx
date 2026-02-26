@@ -1,12 +1,13 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Settings, Save, Globe, Shield, Bell } from 'lucide-react'
 import AdminSidebarLayout from '../AdminSidebarLayout'
+import { toast } from 'sonner'
 
 export default function AdminSettingsPage() {
   const [settings, setSettings] = useState({
-    siteName: 'TalentHub Kenya',
+    siteName: 'TalantaHub',
     siteDescription: 'Premier freelance marketplace for Kenya',
     maintenanceMode: false,
     userRegistration: true,
@@ -15,26 +16,55 @@ export default function AdminSettingsPage() {
     maxFileSize: '10',
     allowedFileTypes: 'jpg,png,pdf,doc,docx'
   })
+  const [loading, setLoading] = useState(false)
+  const [saving, setSaving] = useState(false)
+
+  useEffect(() => {
+    fetchSettings()
+  }, [])
+
+  const fetchSettings = async () => {
+    setLoading(true)
+    try {
+      const response = await fetch('/api/admin/settings')
+      if (response.ok) {
+        const data = await response.json()
+        if (Object.keys(data).length > 0) {
+          setSettings(data)
+        }
+      }
+    } catch (error) {
+      console.error('Fetch error:', error)
+    } finally {
+      setLoading(false)
+    }
+  }
 
   const handleInputChange = (key, value) => {
     setSettings(prev => ({ ...prev, [key]: value }))
   }
 
   const saveSettings = async () => {
+    setSaving(true)
     try {
       const response = await fetch('/api/admin/settings', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(settings)
       })
+      
+      const data = await response.json()
+      
       if (response.ok) {
-        alert('Settings saved successfully!')
+        toast.success(data.message || 'Settings saved successfully!')
       } else {
-        alert('Failed to save settings')
+        toast.error(data.error || 'Failed to save settings')
       }
     } catch (error) {
       console.error('Save error:', error)
-      alert('Error saving settings')
+      toast.error('Error saving settings. Please try again.')
+    } finally {
+      setSaving(false)
     }
   }
 
@@ -185,10 +215,11 @@ export default function AdminSettingsPage() {
             <div className="flex justify-end">
               <button
                 onClick={saveSettings}
-                className="bg-purple-600 hover:bg-purple-700 text-white py-3 px-6 rounded-lg font-semibold transition-colors flex items-center gap-2"
+                disabled={saving}
+                className="bg-purple-600 hover:bg-purple-700 disabled:bg-purple-400 disabled:cursor-not-allowed text-white py-3 px-6 rounded-lg font-semibold transition-colors flex items-center gap-2"
               >
                 <Save className="w-5 h-5" />
-                Save All Settings
+                {saving ? 'Saving...' : 'Save All Settings'}
               </button>
             </div>
           </div>

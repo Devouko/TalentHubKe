@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { prisma } from '@/lib/prisma'
-import { authOptions } from '../auth/[...nextauth]/route'
+import { authOptions } from '@/lib/auth'
 import { addToCartSchema, removeFromCartSchema } from '@/lib/validations/cart'
 import { z } from 'zod'
 
@@ -44,10 +44,9 @@ export async function POST(request: NextRequest) {
     const body = await request.json()
     const validatedData = addToCartSchema.parse(body)
     
-    // Check if product exists
     const product = await prisma.products.findUnique({
       where: { id: validatedData.productId },
-      select: { id: true, stock: true }
+      select: { id: true, stock: true, title: true, price: true }
     })
     
     if (!product) {
@@ -65,15 +64,32 @@ export async function POST(request: NextRequest) {
           productId: validatedData.productId
         }
       },
-      update: { quantity: validatedData.quantity },
+      update: { 
+        quantity: validatedData.quantity,
+        updatedAt: new Date()
+      },
       create: {
         userId: session.user.id,
         productId: validatedData.productId,
         quantity: validatedData.quantity
+      },
+      include: {
+        product: {
+          select: {
+            id: true,
+            title: true,
+            price: true,
+            images: true
+          }
+        }
       }
     })
 
-    return NextResponse.json({ cartItem })
+    return NextResponse.json({ 
+      success: true,
+      cartItem,
+      message: 'Item added to cart'
+    })
   } catch (error) {
     if (error instanceof z.ZodError) {
       return NextResponse.json({ 

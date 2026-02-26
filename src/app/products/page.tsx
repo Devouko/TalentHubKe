@@ -2,8 +2,10 @@
 
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
-import { Search } from 'lucide-react'
+import { useRouter } from 'next/navigation'
+import { Search, ShoppingCart as CartIcon } from 'lucide-react'
 import AddToCartButton from '@/components/AddToCartButton'
+import { useCart } from '../context/CartContext'
 
 const categories = ['All', 'Accounts', 'Digital-products', 'Proxies', 'Bulk_Gmails', 'KYC']
 
@@ -20,11 +22,13 @@ interface Product {
 }
 
 export default function Products() {
+  const router = useRouter()
   const [products, setProducts] = useState<Product[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [searchQuery, setSearchQuery] = useState('')
   const [selectedCategory, setSelectedCategory] = useState('All')
+  const { cart } = useCart()
 
   useEffect(() => {
     const fetchProducts = async () => {
@@ -138,19 +142,20 @@ export default function Products() {
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {filteredProducts.map((product) => (
-              <Link
+              <div
                 key={product.id}
-                href={`/products/${product.id}`}
                 className="bg-white dark:bg-slate-800 rounded-lg shadow-sm hover:shadow-md transition-shadow p-6 border border-slate-200 dark:border-slate-700"
               >
-                {product.images?.[0] && (
-                  <img
-                    src={product.images[0]}
-                    alt={product.title}
-                    className="w-full h-48 object-cover rounded-lg mb-4"
-                  />
-                )}
-                <h3 className="text-lg font-semibold mb-2">{product.title}</h3>
+                <Link href={`/products/${product.id}`}>
+                  {product.images?.[0] && (
+                    <img
+                      src={product.images[0]}
+                      alt={product.title}
+                      className="w-full h-48 object-cover rounded-lg mb-4 cursor-pointer"
+                    />
+                  )}
+                  <h3 className="text-lg font-semibold mb-2 cursor-pointer hover:text-purple-500">{product.title}</h3>
+                </Link>
                 <p className="text-slate-600 dark:text-slate-400 text-sm mb-4 line-clamp-2">
                   {product.description}
                 </p>
@@ -167,6 +172,7 @@ export default function Products() {
                         images: product.images || []
                       }}
                       className="px-3 py-1 text-sm"
+                      redirectToCheckout={false}
                     />
                     <Link
                       href={`/products/${product.id}`}
@@ -176,11 +182,33 @@ export default function Products() {
                     </Link>
                   </div>
                 </div>
-              </Link>
+              </div>
             ))}
           </div>
         )}
       </div>
+
+      {cart.length > 0 && (
+        <button
+          onClick={(e) => {
+            e.preventDefault()
+            e.stopPropagation()
+            console.log('Cart button clicked, navigating to checkout')
+            router.push('/checkout')
+          }}
+          className="fixed bottom-6 right-6 bg-purple-600 text-white p-4 rounded-full shadow-lg hover:bg-purple-700 transition-all hover:scale-110 cursor-pointer"
+          style={{ zIndex: 9999 }}
+          aria-label="View Cart"
+          type="button"
+        >
+          <div className="relative pointer-events-none">
+            <CartIcon className="w-6 h-6" />
+            <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center font-bold">
+              {cart.length}
+            </span>
+          </div>
+        </button>
+      )}
     </div>
   )
 }

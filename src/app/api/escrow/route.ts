@@ -1,85 +1,54 @@
-import { NextResponse } from 'next/server'
-import { prisma } from '@/lib/prisma'
+import { NextRequest, NextResponse } from 'next/server'
+import { getServerSession } from 'next-auth'
+import { authOptions } from '@/lib/auth'
+import { escrowService } from '@/lib/escrow.service'
+import { z } from 'zod'
 
-export async function POST(request: Request) {
+const createEscrowSchema = z.object({
+  sellerId: z.string(),
+  productId: z.string(),
+  amount: z.number().positive(),
+  items: z.array(z.object({
+    productId: z.string(),
+    quantity: z.number().positive(),
+    price: z.number().positive(),
+  })),
+})
+
+export async function POST(req: NextRequest) {
   try {
-    const body = await request.json()
-    const { buyerId, items, totalAmount } = body
+    const session = await getServerSession(authOptions)
+    if (!session?.user?.id) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
 
-    const transaction = await prisma.escrowTransaction.create({
-      data: {
-        buyerId,
-        amount: totalAmount,
-        status: 'PENDING',
-        items: {
-          create: items.map(item => ({
-            productId: item.productId,
-            quantity: item.quantity,
-            price: item.price
-          }))
-        }
-      },
-      include: {
-        items: {
-          include: {
-            product: true
-          }
-        },
-        buyer: true
-      }
+    const body = await req.json()
+    const data = createEscrowSchema.parse(body)
+
+    const transaction = await escrowService.createTransaction({
+      buyerId: session.user.id,
+      ...data,
     })
 
-    return NextResponse.json(transaction)
+    return NextResponse.json(transaction, { status: 201 })
   } catch (error) {
-    return NextResponse.json({ error: 'Failed to create transaction' }, { status: 500 })
+    if (error instanceof z.ZodError) {
+      return NextResponse.json({ error: error.errors }, { status: 400 })
+    }
+    return NextResponse.json({ error: 'Failed to create escrow' }, { status: 500 })
   }
 }
 
-export async function GET() {
+export async function GET(req: NextRequest) {
   try {
-    const transactions = await prisma.escrowTransaction.findMany({
-      include: {
-        buyer: true,
-        seller: true,
-        items: {
-          include: {
-            product: true
-          }
-        }
-      },
-      orderBy: { createdAt: 'desc' }
-    })
+    const session = await getServerSession(authOptions)
+    if (!session?.user?.id) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
 
+    const transactions = await escrowService.getUserTransactions(session.user.id)
     return NextResponse.json(transactions)
   } catch (error) {
     return NextResponse.json({ error: 'Failed to fetch transactions' }, { status: 500 })
-  }
-}
-
-export async function PATCH(request: Request) {
-  try {
-    const body = await request.json()
-    const { id, status, adminNotes } = body
-
-    const transaction = await prisma.escrowTransaction.update({
-      where: { id },
-      data: {
-        status,
-        adminNotes,
-        updatedAt: new Date()
-      },
-      include: {
-        buyer: true,
-        items: {
-          include: {
-            product: true
-          }
-        }
-      }
-    })
-
-    return NextResponse.json(transaction)
-  } catch (error) {
-    return NextResponse.json({ error: 'Failed to update transaction' }, { status: 500 })
   }
 }

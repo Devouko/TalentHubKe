@@ -31,13 +31,18 @@ export function ReviewForm({ type, targetId, orderId, onSuccess, onCancel }: Rev
     setIsSubmitting(true)
 
     try {
-      const endpoint = `/api/reviews/${type}s`
-      const payload = {
-        rating,
-        comment: comment.trim(),
-        ...(type === 'gig' && { gigId: targetId, orderId }),
-        ...(type === 'product' && { productId: targetId }),
-        ...(type === 'seller' && { sellerId: targetId, orderId })
+      let endpoint = ''
+      let payload: any = { rating, comment: comment.trim() }
+
+      if (type === 'gig') {
+        endpoint = '/api/reviews'
+        payload = { ...payload, gigId: targetId, orderId }
+      } else if (type === 'product') {
+        endpoint = '/api/product-reviews'
+        payload = { ...payload, productId: targetId }
+      } else if (type === 'seller') {
+        endpoint = '/api/seller-reviews'
+        payload = { ...payload, sellerId: targetId, orderId }
       }
 
       const response = await fetch(endpoint, {

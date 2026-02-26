@@ -1,5 +1,5 @@
 {
-  "siteName": "TalentHub Marketplace",
+  "siteName": "TalantaHub Marketplace",
   "siteDescription": "Connect with talented professionals",
   "contactEmail": "contact@talenthub.com",
   "supportEmail": "support@talenthub.com",
@@ -9,7 +9,7 @@
   "defaultCurrency": "USD",
   "commissionRate": 5,
   "escrowEnabled": true,
-  "maxFileSize": 10,
+  "maxFileSize": "100",
   "allowedFileTypes": [
     "jpg",
     "jpeg",

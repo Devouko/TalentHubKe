@@ -1,36 +1,20 @@
-import { lazy, Suspense } from 'react'
+import dynamic from 'next/dynamic'
 
-const LazyCheckoutComponent = lazy(() => import('@/components/CheckoutComponent'))
-const LazyOrderSuccess = lazy(() => import('@/components/OrderSuccess'))
-const LazyCartComponent = lazy(() => import('@/components/CartComponent'))
-const LazyApplicationManager = lazy(() => import('@/components/ApplicationManager'))
-
-const LoadingSpinner = () => (
-  <div className="flex justify-center items-center py-12">
-    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-  </div>
+// Lazy load heavy components
+export const LazyReviewSection = dynamic(
+  () => import('@/components/reviews/ReviewSectionComplete').then(mod => ({ default: mod.ReviewSectionComplete })),
+  { 
+    loading: () => <div className="animate-pulse bg-slate-200 dark:bg-slate-700 h-64 rounded-lg" />,
+    ssr: false 
+  }
 )
 
-export const CheckoutComponent = (props: any) => (
-  <Suspense fallback={<LoadingSpinner />}>
-    <LazyCheckoutComponent {...props} />
-  </Suspense>
+export const LazyChart = dynamic(
+  () => import('recharts').then(mod => mod),
+  { loading: () => <div className="animate-pulse bg-slate-200 h-64 rounded" /> }
 )
 
-export const OrderSuccess = (props: any) => (
-  <Suspense fallback={<LoadingSpinner />}>
-    <LazyOrderSuccess {...props} />
-  </Suspense>
-)
-
-export const CartComponent = (props: any) => (
-  <Suspense fallback={<LoadingSpinner />}>
-    <LazyCartComponent {...props} />
-  </Suspense>
-)
-
-export const ApplicationManager = (props: any) => (
-  <Suspense fallback={<LoadingSpinner />}>
-    <LazyApplicationManager {...props} />
-  </Suspense>
+export const LazyEditor = dynamic(
+  () => import('@/components/Editor'),
+  { loading: () => <div className="animate-pulse bg-slate-200 h-96 rounded" />, ssr: false }
 )

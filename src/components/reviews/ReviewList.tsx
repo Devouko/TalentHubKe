@@ -43,25 +43,49 @@ export function ReviewList({ type, targetId, className }: ReviewListProps) {
 
   const fetchReviews = async (pageNum = 1) => {
     try {
-      const endpoint = `/api/reviews/${type}s`
-      const params = new URLSearchParams({
-        [`${type}Id`]: targetId,
+      let endpoint = ''
+      let params = new URLSearchParams({
         page: pageNum.toString(),
         limit: '10'
       })
 
+      if (type === 'gig') {
+        endpoint = '/api/reviews'
+        params.append('gigId', targetId)
+      } else if (type === 'product') {
+        endpoint = '/api/product-reviews'
+        params.append('productId', targetId)
+      } else if (type === 'seller') {
+        endpoint = '/api/seller-reviews'
+        params.append('sellerId', targetId)
+      }
+
       const response = await fetch(`${endpoint}?${params}`)
       const data = await response.json()
 
+      const reviewsData = data.reviews || []
+      const mappedReviews = reviewsData.map((r: any) => ({
+        id: r.id,
+        rating: r.rating,
+        comment: r.comment,
+        images: r.images || [],
+        isVerified: r.isVerified || false,
+        createdAt: r.createdAt,
+        reviewer: {
+          id: r.users?.id || r.users_seller_reviews_reviewerIdTousers?.id || '',
+          name: r.users?.name || r.users_seller_reviews_reviewerIdTousers?.name || 'Anonymous',
+          image: r.users?.image || r.users_seller_reviews_reviewerIdTousers?.image
+        }
+      }))
+
       if (pageNum === 1) {
-        setReviews(data.reviews || [])
+        setReviews(mappedReviews)
       } else {
-        setReviews(prev => [...prev, ...(data.reviews || [])])
+        setReviews(prev => [...prev, ...mappedReviews])
       }
 
-      setAverageRating(data.averageRating || 0)
-      setTotalReviews(data.total || data.totalReviews || 0)
-      setHasMore((data.reviews?.length || 0) === 10)
+      setTotalReviews(data.pagination?.total || 0)
+      setHasMore(mappedReviews.length === 10)
     } catch (error) {
       console.error('Failed to fetch reviews:', error)
     } finally {

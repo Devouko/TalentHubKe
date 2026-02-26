@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { prisma } from '@/lib/prisma'
-import { authOptions } from '../../auth/[...nextauth]/route'
+import { authOptions } from '@/lib/auth'
 
 export async function DELETE(request: NextRequest) {
   try {
@@ -14,7 +14,10 @@ export async function DELETE(request: NextRequest) {
       where: { userId: session.user.id }
     })
 
-    return NextResponse.json({ success: true })
+    return NextResponse.json({ 
+      success: true,
+      message: 'Cart cleared successfully'
+    })
   } catch (error) {
     console.error('Cart clear error:', error)
     return NextResponse.json({ 
@@ -22,4 +25,8 @@ export async function DELETE(request: NextRequest) {
       details: process.env.NODE_ENV === 'development' ? error : undefined
     }, { status: 500 })
   }
+}
+
+export async function POST(request: NextRequest) {
+  return DELETE(request)
 }

@@ -1,78 +1,52 @@
-const { withSentryConfig } = require('@sentry/nextjs')
-
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  output: 'standalone',
-  poweredByHeader: false,
-  compress: true,
+  reactStrictMode: true,
+  swcMinify: true,
+  
+  // Image optimization
   images: {
-    domains: ['images.unsplash.com', 'utfs.io'],
-    formats: ['image/webp', 'image/avif'],
+    domains: ['images.unsplash.com', 'localhost'],
+    formats: ['image/avif', 'image/webp'],
     minimumCacheTTL: 60,
   },
+
+  // Compression
+  compress: true,
+
+  // Performance optimizations
+  compiler: {
+    removeConsole: process.env.NODE_ENV === 'production',
+  },
+
+  // Experimental features for better performance
   experimental: {
-    serverComponentsExternalPackages: ['@prisma/client'],
+    optimizeCss: true,
+    optimizePackageImports: ['lucide-react', 'date-fns'],
   },
-  webpack: (config, { isServer }) => {
-    if (!isServer) {
-      config.resolve.fallback = {
-        ...config.resolve.fallback,
-        fs: false,
-        path: false,
-      }
-    }
-    return config
-  },
+
+  // Headers for caching
   async headers() {
     return [
       {
-        source: '/:path*',
+        source: '/:all*(svg|jpg|jpeg|png|gif|ico|webp)',
         headers: [
           {
-            key: 'X-DNS-Prefetch-Control',
-            value: 'on'
+            key: 'Cache-Control',
+            value: 'public, max-age=31536000, immutable',
           },
-          {
-            key: 'Strict-Transport-Security',
-            value: 'max-age=63072000; includeSubDomains; preload'
-          },
-          {
-            key: 'X-Frame-Options',
-            value: 'SAMEORIGIN'
-          },
-          {
-            key: 'X-Content-Type-Options',
-            value: 'nosniff'
-          },
-          {
-            key: 'X-XSS-Protection',
-            value: '1; mode=block'
-          },
-          {
-            key: 'Referrer-Policy',
-            value: 'origin-when-cross-origin'
-          },
-          {
-            key: 'Permissions-Policy',
-            value: 'camera=(), microphone=(), geolocation=()'
-          }
         ],
       },
-    ]
+      {
+        source: '/_next/static/:path*',
+        headers: [
+          {
+            key: 'Cache-Control',
+            value: 'public, max-age=31536000, immutable',
+          },
+        ],
+      },
+    ];
   },
 }
 
-const sentryWebpackPluginOptions = {
-  org: process.env.SENTRY_ORG,
-  project: process.env.SENTRY_PROJECT,
-  silent: true,
-  widenClientFileUpload: true,
-  reactComponentAnnotation: {
-    enabled: true,
-  },
-  hideSourceMaps: true,
-  disableLogger: true,
-  automaticVercelMonitors: true,
-}
-
-module.exports = process.env.SENTRY_DSN ? withSentryConfig(nextConfig, sentryWebpackPluginOptions) : nextConfig
+module.exports = nextConfig

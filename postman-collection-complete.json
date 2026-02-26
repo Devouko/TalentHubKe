@@ -1,0 +1,416 @@
+{
+  "info": {
+    "name": "Transform to Talent Marketplace API - Complete",
+    "description": "Complete API collection for testing all endpoints",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:3000",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "Authentication",
+      "item": [
+        {
+          "name": "Login",
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "body": {"mode": "raw", "raw": "{\n  \"email\": \"user@example.com\",\n  \"password\": \"password123\"\n}"},
+            "url": "{{baseUrl}}/api/auth/signin"
+          }
+        },
+        {
+          "name": "Register",
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "body": {"mode": "raw", "raw": "{\n  \"email\": \"newuser@example.com\",\n  \"password\": \"password123\",\n  \"name\": \"John Doe\",\n  \"userType\": \"CLIENT\"\n}"},
+            "url": "{{baseUrl}}/api/auth/register"
+          }
+        },
+        {
+          "name": "Signup",
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "body": {"mode": "raw", "raw": "{\n  \"email\": \"admin@example.com\",\n  \"password\": \"admin123\",\n  \"name\": \"Admin User\",\n  \"userType\": \"ADMIN\"\n}"},
+            "url": "{{baseUrl}}/api/auth/signup"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Users",
+      "item": [
+        {
+          "name": "Get All Users",
+          "request": {"method": "GET", "url": "{{baseUrl}}/api/users"}
+        },
+        {
+          "name": "Get User by ID",
+          "request": {"method": "GET", "url": "{{baseUrl}}/api/users?id=USER_ID"}
+        },
+        {
+          "name": "Get Talent Users",
+          "request": {"method": "GET", "url": "{{baseUrl}}/api/users?type=talent"}
+        },
+        {
+          "name": "Update User",
+          "request": {
+            "method": "PUT",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "body": {"mode": "raw", "raw": "{\n  \"name\": \"Updated Name\"\n}"},
+            "url": "{{baseUrl}}/api/users?id=USER_ID"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Gigs",
+      "item": [
+        {
+          "name": "Get All Gigs",
+          "request": {"method": "GET", "url": "{{baseUrl}}/api/gigs"}
+        },
+        {
+          "name": "Get Gig by ID",
+          "request": {"method": "GET", "url": "{{baseUrl}}/api/gigs?id=GIG_ID"}
+        },
+        {
+          "name": "Create Gig",
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "body": {"mode": "raw", "raw": "{\n  \"title\": \"Web Development\",\n  \"description\": \"Full stack development\",\n  \"category\": \"Programming\",\n  \"price\": 5000,\n  \"deliveryTime\": 7,\n  \"tags\": [\"react\", \"nodejs\"]\n}"},
+            "url": "{{baseUrl}}/api/gigs"
+          }
+        },
+        {
+          "name": "Update Gig",
+          "request": {
+            "method": "PUT",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "body": {"mode": "raw", "raw": "{\n  \"title\": \"Updated Title\",\n  \"price\": 6000\n}"},
+            "url": "{{baseUrl}}/api/gigs?id=GIG_ID"
+          }
+        },
+        {
+          "name": "Delete Gig",
+          "request": {"method": "DELETE", "url": "{{baseUrl}}/api/gigs?id=GIG_ID"}
+        }
+      ]
+    },
+    {
+      "name": "Products",
+      "item": [
+        {
+          "name": "Get All Products",
+          "request": {"method": "GET", "url": "{{baseUrl}}/api/products"}
+        },
+        {
+          "name": "Get Products by Category",
+          "request": {"method": "GET", "url": "{{baseUrl}}/api/products?category=Programming"}
+        }
+      ]
+    },
+    {
+      "name": "Orders",
+      "item": [
+        {
+          "name": "Create Order",
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "body": {"mode": "raw", "raw": "{\n  \"items\": [{\"productId\": \"PRODUCT_ID\", \"quantity\": 1, \"price\": 1000}],\n  \"total\": 1000,\n  \"phoneNumber\": \"254712345678\",\n  \"shippingAddress\": \"Nairobi, Kenya\"\n}"},
+            "url": "{{baseUrl}}/api/orders"
+          }
+        },
+        {
+          "name": "Get Orders",
+          "request": {"method": "GET", "url": "{{baseUrl}}/api/orders"}
+        },
+        {
+          "name": "Get Order by ID",
+          "request": {"method": "GET", "url": "{{baseUrl}}/api/orders?id=ORDER_ID"}
+        }
+      ]
+    },
+    {
+      "name": "Cart",
+      "item": [
+        {
+          "name": "Get Cart",
+          "request": {"method": "GET", "url": "{{baseUrl}}/api/cart"}
+        },
+        {
+          "name": "Add to Cart",
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "body": {"mode": "raw", "raw": "{\n  \"productId\": \"PRODUCT_ID\",\n  \"quantity\": 1\n}"},
+            "url": "{{baseUrl}}/api/cart"
+          }
+        },
+        {
+          "name": "Remove from Cart",
+          "request": {"method": "DELETE", "url": "{{baseUrl}}/api/cart?productId=PRODUCT_ID"}
+        },
+        {
+          "name": "Clear Cart",
+          "request": {"method": "POST", "url": "{{baseUrl}}/api/cart/clear"}
+        }
+      ]
+    },
+    {
+      "name": "Reviews",
+      "item": [
+        {
+          "name": "Get Reviews",
+          "request": {"method": "GET", "url": "{{baseUrl}}/api/reviews"}
+        },
+        {
+          "name": "Get Reviews by Gig",
+          "request": {"method": "GET", "url": "{{baseUrl}}/api/reviews?gigId=GIG_ID"}
+        },
+        {
+          "name": "Create Review",
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "body": {"mode": "raw", "raw": "{\n  \"gigId\": \"GIG_ID\",\n  \"orderId\": \"ORDER_ID\",\n  \"rating\": 5,\n  \"comment\": \"Excellent work!\"\n}"},
+            "url": "{{baseUrl}}/api/reviews"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Sellers",
+      "item": [
+        {
+          "name": "Get All Sellers",
+          "request": {"method": "GET", "url": "{{baseUrl}}/api/sellers"}
+        },
+        {
+          "name": "Submit Seller Application",
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "body": {"mode": "raw", "raw": "{\n  \"businessName\": \"My Business\",\n  \"skills\": [\"React\", \"Node.js\"],\n  \"experience\": \"5 years\",\n  \"portfolio\": [\"https://portfolio.com\"],\n  \"description\": \"Experienced developer\"\n}"},
+            "url": "{{baseUrl}}/api/seller-application"
+          }
+        },
+        {
+          "name": "Get Seller Applications",
+          "request": {"method": "GET", "url": "{{baseUrl}}/api/seller-applications"}
+        }
+      ]
+    },
+    {
+      "name": "Bids",
+      "item": [
+        {
+          "name": "Create Bid",
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "body": {"mode": "raw", "raw": "{\n  \"gigId\": \"GIG_ID\",\n  \"bidderId\": \"USER_ID\",\n  \"amount\": 5000,\n  \"proposal\": \"I can complete this project\",\n  \"timeline\": 7\n}"},
+            "url": "{{baseUrl}}/api/bids"
+          }
+        },
+        {
+          "name": "Get Bids by Gig",
+          "request": {"method": "GET", "url": "{{baseUrl}}/api/bids?gigId=GIG_ID"}
+        },
+        {
+          "name": "Get Bids by User",
+          "request": {"method": "GET", "url": "{{baseUrl}}/api/bids?userId=USER_ID"}
+        }
+      ]
+    },
+    {
+      "name": "Applications",
+      "item": [
+        {
+          "name": "Submit Application",
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "body": {"mode": "raw", "raw": "{\n  \"jobId\": \"JOB_ID\",\n  \"applicantId\": \"USER_ID\",\n  \"coverLetter\": \"I am interested\",\n  \"skills\": \"React, Node.js\",\n  \"experience\": \"5 years\"\n}"},
+            "url": "{{baseUrl}}/api/applications"
+          }
+        },
+        {
+          "name": "Check Application",
+          "request": {"method": "GET", "url": "{{baseUrl}}/api/applications?jobId=JOB_ID&applicantId=USER_ID"}
+        },
+        {
+          "name": "Get Applications by Poster",
+          "request": {"method": "GET", "url": "{{baseUrl}}/api/applications?posterId=USER_ID"}
+        }
+      ]
+    },
+    {
+      "name": "Messages",
+      "item": [
+        {
+          "name": "Get Messages by Conversation",
+          "request": {"method": "GET", "url": "{{baseUrl}}/api/messages?conversationId=CONV_ID"}
+        },
+        {
+          "name": "Get Messages by Order",
+          "request": {"method": "GET", "url": "{{baseUrl}}/api/messages?orderId=ORDER_ID"}
+        },
+        {
+          "name": "Send Message",
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "body": {"mode": "raw", "raw": "{\n  \"conversationId\": \"CONV_ID\",\n  \"content\": \"Hello!\",\n  \"attachments\": []\n}"},
+            "url": "{{baseUrl}}/api/messages"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Notifications",
+      "item": [
+        {
+          "name": "Get Notifications",
+          "request": {"method": "GET", "url": "{{baseUrl}}/api/notifications"}
+        }
+      ]
+    },
+    {
+      "name": "Interviews",
+      "item": [
+        {
+          "name": "Schedule Interview",
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "body": {"mode": "raw", "raw": "{\n  \"applicationId\": \"APP_ID\",\n  \"scheduledAt\": \"2024-12-31T10:00:00Z\",\n  \"duration\": 30,\n  \"type\": \"VIDEO\"\n}"},
+            "url": "{{baseUrl}}/api/interviews"
+          }
+        },
+        {
+          "name": "Get Interviews by User",
+          "request": {"method": "GET", "url": "{{baseUrl}}/api/interviews?userId=USER_ID"}
+        }
+      ]
+    },
+    {
+      "name": "Escrow",
+      "item": [
+        {
+          "name": "Create Escrow Transaction",
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "body": {"mode": "raw", "raw": "{\n  \"buyerId\": \"USER_ID\",\n  \"items\": [{\"productId\": \"PROD_ID\", \"quantity\": 1, \"price\": 1000}],\n  \"totalAmount\": 1000\n}"},
+            "url": "{{baseUrl}}/api/escrow"
+          }
+        },
+        {
+          "name": "Get Escrow Transactions",
+          "request": {"method": "GET", "url": "{{baseUrl}}/api/escrow"}
+        },
+        {
+          "name": "Update Escrow Status",
+          "request": {
+            "method": "PATCH",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "body": {"mode": "raw", "raw": "{\n  \"id\": \"ESCROW_ID\",\n  \"status\": \"COMPLETED\",\n  \"adminNotes\": \"Approved\"\n}"},
+            "url": "{{baseUrl}}/api/escrow"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Checkout",
+      "item": [
+        {
+          "name": "Checkout",
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "body": {"mode": "raw", "raw": "{\n  \"items\": [{\"productId\": \"PROD_ID\", \"quantity\": 1, \"price\": 1000}],\n  \"phoneNumber\": \"254712345678\"\n}"},
+            "url": "{{baseUrl}}/api/checkout"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Hire Talent",
+      "item": [
+        {
+          "name": "Send Hire Request",
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "body": {"mode": "raw", "raw": "{\n  \"talentId\": \"USER_ID\",\n  \"message\": \"I want to hire you\",\n  \"projectDetails\": \"Build a website\"\n}"},
+            "url": "{{baseUrl}}/api/hire-talent"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Profile",
+      "item": [
+        {
+          "name": "Get Profile",
+          "request": {"method": "GET", "url": "{{baseUrl}}/api/profile"}
+        },
+        {
+          "name": "Update Profile",
+          "request": {
+            "method": "PUT",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "body": {"mode": "raw", "raw": "{\n  \"name\": \"John Doe\",\n  \"phoneNumber\": \"254712345678\",\n  \"bio\": \"Developer\"\n}"},
+            "url": "{{baseUrl}}/api/profile"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Payments (M-Pesa)",
+      "item": [
+        {
+          "name": "STK Push",
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "body": {"mode": "raw", "raw": "{\n  \"phoneNumber\": \"254712345678\",\n  \"amount\": 1000\n}"},
+            "url": "{{baseUrl}}/api/mpesa/stkpush"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Categories",
+      "item": [
+        {
+          "name": "Get Categories",
+          "request": {"method": "GET", "url": "{{baseUrl}}/api/categories"}
+        }
+      ]
+    },
+    {
+      "name": "Utilities",
+      "item": [
+        {
+          "name": "Health Check",
+          "request": {"method": "GET", "url": "{{baseUrl}}/api/health"}
+        },
+        {
+          "name": "Test DB",
+          "request": {"method": "GET", "url": "{{baseUrl}}/api/test-db"}
+        }
+      ]
+    }
+  ]
+}

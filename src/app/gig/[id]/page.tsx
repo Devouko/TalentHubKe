@@ -9,6 +9,8 @@ import {
   CheckCircle, ArrowLeft, ZoomIn, User, Award,
   MessageCircle, Shield, Truck
 } from 'lucide-react'
+import { ReviewSectionComplete } from '@/components/reviews'
+import { useSession } from 'next-auth/react'
 
 // Mock gig data - in real app, fetch from API
 const mockGig = {
@@ -108,6 +110,7 @@ I work with businesses across Kenya and globally, understanding local market pre
 
 export default function GigDetail() {
   const params = useParams()
+  const { data: session } = useSession()
   const [selectedImage, setSelectedImage] = useState(0)
   const [selectedPackage, setSelectedPackage] = useState(1)
   const [showImageModal, setShowImageModal] = useState(false)
@@ -324,6 +327,15 @@ export default function GigDetail() {
               </button>
             </div>
           </div>
+        </div>
+
+        {/* Reviews Section */}
+        <div className="mt-12">
+          <ReviewSectionComplete
+            type="gig"
+            targetId={params.id as string}
+            canReview={!!session}
+          />
         </div>
       </div>
 

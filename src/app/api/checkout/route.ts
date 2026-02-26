@@ -1,24 +1,102 @@
-import { NextResponse } from 'next/server'
-import { CheckoutService } from '@/lib/checkout.service'
-import { ApiUtils } from '@/lib/api.utils'
+import { NextRequest, NextResponse } from 'next/server'
+import { getServerSession } from 'next-auth'
+import { authOptions } from '@/lib/auth'
+import { prisma } from '@/lib/prisma'
+import { randomUUID } from 'crypto'
 
-export async function POST(request: Request) {
-  return ApiUtils.withErrorHandling(async () => {
-    const { items, phoneNumber } = await request.json()
-    
-    ApiUtils.validateCartData(items, phoneNumber)
-    
-    const total = items.reduce((sum: number, item: any) => sum + (item.price * item.quantity), 0)
-    
-    const result = await CheckoutService.createOrderWithPayment({
-      items,
-      total,
-      phoneNumber
+export async function POST(request: NextRequest) {
+  try {
+    const session = await getServerSession(authOptions)
+    if (!session?.user?.id) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
+    const { items, phoneNumber, shippingAddress } = await request.json()
+
+    if (!items || !Array.isArray(items) || items.length === 0) {
+      return NextResponse.json({ error: 'Cart is empty' }, { status: 400 })
+    }
+
+    if (!phoneNumber) {
+      return NextResponse.json({ error: 'Phone number is required' }, { status: 400 })
+    }
+
+    const phoneRegex = /^(254|0)[17]\d{8}$/
+    const cleanPhone = phoneNumber.replace(/\s/g, '')
+    if (!phoneRegex.test(cleanPhone)) {
+      return NextResponse.json({ error: 'Invalid Kenyan phone number' }, { status: 400 })
+    }
+
+    const total = items.reduce((sum, item) => sum + (item.price * item.quantity), 0)
+
+    if (total <= 0) {
+      return NextResponse.json({ error: 'Invalid order total' }, { status: 400 })
+    }
+
+    const productIds = items.map(item => item.id || item.productId)
+    const products = await prisma.products.findMany({
+      where: { id: { in: productIds } },
+      select: { id: true, stock: true, price: true, title: true }
     })
 
-    return {
-      order: result.order,
-      payment: result.payment
+    for (const item of items) {
+      const product = products.find(p => p.id === (item.id || item.productId))
+      if (!product) {
+        return NextResponse.json({ 
+          error: `Product ${item.title} not found` 
+        }, { status: 404 })
+      }
+      if (product.stock < item.quantity) {
+        return NextResponse.json({ 
+          error: `Insufficient stock for ${product.title}` 
+        }, { status: 400 })
+      }
     }
-  })
+
+    const order = await prisma.$transaction(async (tx) => {
+      const newOrder = await tx.orders.create({
+        data: {
+          id: randomUUID(),
+          buyerId: session.user.id,
+          totalAmount: total,
+          status: 'PENDING',
+          phoneNumber: cleanPhone,
+          items: JSON.stringify(items),
+          requirements: shippingAddress || 'Digital delivery',
+          createdAt: new Date(),
+          updatedAt: new Date()
+        }
+      })
+
+      for (const item of items) {
+        await tx.products.update({
+          where: { id: item.id || item.productId },
+          data: { stock: { decrement: item.quantity } }
+        })
+      }
+
+      await tx.cart.deleteMany({
+        where: { userId: session.user.id }
+      })
+
+      return newOrder
+    })
+
+    return NextResponse.json({
+      success: true,
+      order: {
+        id: order.id,
+        totalAmount: order.totalAmount,
+        status: order.status,
+        createdAt: order.createdAt
+      },
+      message: 'Order created successfully'
+    })
+  } catch (error) {
+    console.error('Checkout error:', error)
+    return NextResponse.json({ 
+      error: 'Failed to process checkout',
+      details: process.env.NODE_ENV === 'development' ? error.message : undefined
+    }, { status: 500 })
+  }
 }
