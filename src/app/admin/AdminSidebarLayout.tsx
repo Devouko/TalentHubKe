@@ -54,7 +54,7 @@ export default function AdminSidebarLayout({ children }: AdminSidebarLayoutProps
   return (
     <>
       {/* Admin Sidebar */}
-      <div className={`fixed left-0 top-0 h-full bg-gray-900 border-r border-gray-700 transition-transform duration-300 z-50 overflow-y-auto w-64 ${
+      <div className={`fixed left-0 top-0 h-full bg-slate-900 border-r border-slate-800 transition-transform duration-300 z-50 overflow-y-auto w-64 ${
         isOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
       }`}>
         <button
@@ -64,62 +64,66 @@ export default function AdminSidebarLayout({ children }: AdminSidebarLayoutProps
           <X className="w-5 h-5 text-white" />
         </button>
         <div className="p-4">
-          <div className="flex items-center justify-between mb-8">
-            <h2 className="font-bold text-white">Admin Panel</h2>
+          <div className="flex items-center justify-between mb-8 px-2">
+            <h2 className="font-black text-xl text-white tracking-tight italic">
+              Talanta<span className="text-blue-500">Hub</span> <span className="text-xs uppercase bg-blue-600 px-1.5 py-0.5 rounded ml-1 not-italic tracking-normal">Admin</span>
+            </h2>
           </div>
-          <nav className="space-y-2">
-            <Link href="/admin" className="flex items-center gap-3 p-3 rounded-lg hover:bg-gray-800 text-gray-300 hover:text-white">
+          <nav className="space-y-1">
+            <Link href="/admin" className="flex items-center gap-3 p-3 rounded-xl hover:bg-slate-800 text-slate-400 hover:text-white transition-all">
               <BarChart3 className="w-5 h-5" />
-              <span>Dashboard</span>
+              <span className="font-medium">Dashboard</span>
             </Link>
-            <Link href="/admin/users" className="flex items-center gap-3 p-3 rounded-lg hover:bg-gray-800 text-gray-300 hover:text-white">
+            <Link href="/admin/users" className="flex items-center gap-3 p-3 rounded-xl hover:bg-slate-800 text-slate-400 hover:text-white transition-all">
               <Users className="w-5 h-5" />
-              <span>Users</span>
+              <span className="font-medium">Users</span>
             </Link>
-            <Link href="/admin/sellers" className="flex items-center gap-3 p-3 rounded-lg hover:bg-gray-800 text-gray-300 hover:text-white">
+            <Link href="/admin/sellers" className="flex items-center gap-3 p-3 rounded-xl hover:bg-slate-800 text-slate-400 hover:text-white transition-all">
               <Store className="w-5 h-5" />
-              <span>Sellers</span>
+              <span className="font-medium">Sellers</span>
             </Link>
-            <Link href="/admin/talent" className="flex items-center gap-3 p-3 rounded-lg hover:bg-gray-800 text-gray-300 hover:text-white">
+            <Link href="/admin/talent" className="flex items-center gap-3 p-3 rounded-xl hover:bg-slate-800 text-slate-400 hover:text-white transition-all">
               <UserCheck className="w-5 h-5" />
-              <span>Talent</span>
+              <span className="font-medium">Talent</span>
             </Link>
-            <Link href="/admin/gigs" className="flex items-center gap-3 p-3 rounded-lg hover:bg-gray-800 text-gray-300 hover:text-white">
+            <Link href="/admin/gigs" className="flex items-center gap-3 p-3 rounded-xl hover:bg-slate-800 text-slate-400 hover:text-white transition-all">
               <Briefcase className="w-5 h-5" />
-              <span>Gigs</span>
+              <span className="font-medium">Gigs</span>
             </Link>
-            <Link href="/admin/products" className="flex items-center gap-3 p-3 rounded-lg hover:bg-gray-800 text-gray-300 hover:text-white">
+            <Link href="/admin/products" className="flex items-center gap-3 p-3 rounded-xl hover:bg-slate-800 text-slate-400 hover:text-white transition-all">
               <Package className="w-5 h-5" />
-              <span>Products</span>
+              <span className="font-medium">Products</span>
             </Link>
-            <Link href="/admin/opportunities" className="flex items-center gap-3 p-3 rounded-lg hover:bg-gray-800 text-gray-300 hover:text-white">
+            <Link href="/admin/opportunities" className="flex items-center gap-3 p-3 rounded-xl hover:bg-slate-800 text-slate-400 hover:text-white transition-all">
               <PlusCircle className="w-5 h-5" />
-              <span>Opportunities</span>
+              <span className="font-medium">Opportunities</span>
             </Link>
-            <Link href="/admin/escrow" className="flex items-center gap-3 p-3 rounded-lg hover:bg-gray-800 text-gray-300 hover:text-white">
+            <Link href="/admin/escrow" className="flex items-center gap-3 p-3 rounded-xl hover:bg-slate-800 text-slate-400 hover:text-white transition-all">
               <DollarSign className="w-5 h-5" />
-              <span>Escrow</span>
+              <span className="font-medium">Escrow</span>
             </Link>
-            <Link href="/admin/reviews" className="flex items-center gap-3 p-3 rounded-lg hover:bg-gray-800 text-gray-300 hover:text-white">
+            <Link href="/admin/reviews" className="flex items-center gap-3 p-3 rounded-xl hover:bg-slate-800 text-slate-400 hover:text-white transition-all">
               <Star className="w-5 h-5" />
-              <span>Reviews</span>
+              <span className="font-medium">Reviews</span>
             </Link>
-            <Link href="/admin/messages" className="flex items-center gap-3 p-3 rounded-lg hover:bg-gray-800 text-gray-300 hover:text-white">
+            <Link href="/admin/messages" className="flex items-center gap-3 p-3 rounded-xl hover:bg-slate-800 text-slate-400 hover:text-white transition-all">
               <MessageSquare className="w-5 h-5" />
-              <span>Messages</span>
+              <span className="font-medium">Messages</span>
             </Link>
-            <Link href="/admin/settings" className="flex items-center gap-3 p-3 rounded-lg hover:bg-gray-800 text-gray-300 hover:text-white">
+            <Link href="/admin/settings" className="flex items-center gap-3 p-3 rounded-xl hover:bg-slate-800 text-slate-400 hover:text-white transition-all">
               <Settings className="w-5 h-5" />
-              <span>Settings</span>
+              <span className="font-medium">Settings</span>
             </Link>
-            <Link href="/admin/theme" className="flex items-center gap-3 p-3 rounded-lg hover:bg-gray-800 text-gray-300 hover:text-white">
+            <Link href="/admin/theme" className="flex items-center gap-3 p-3 rounded-xl hover:bg-slate-800 text-slate-400 hover:text-white transition-all">
               <Palette className="w-5 h-5" />
-              <span>Theme</span>
+              <span className="font-medium">Theme</span>
             </Link>
-            <button onClick={handleSignOut} className="w-full flex items-center gap-3 p-3 rounded-lg hover:bg-red-800 text-gray-300 hover:text-white">
-              <LogOut className="w-5 h-5" />
-              <span>Sign Out</span>
-            </button>
+            <div className="pt-4 mt-4 border-t border-slate-800">
+              <button onClick={handleSignOut} className="w-full flex items-center gap-3 p-3 rounded-xl hover:bg-red-900/20 text-slate-400 hover:text-red-400 transition-all">
+                <LogOut className="w-5 h-5" />
+                <span className="font-medium">Sign Out</span>
+              </button>
+            </div>
           </nav>
         </div>
       </div>

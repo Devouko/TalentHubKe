@@ -92,11 +92,13 @@ export async function POST(request: NextRequest) {
       },
       message: 'Order created successfully'
     })
-  } catch (error) {
+  } catch (error: any) {
     console.error('Checkout error:', error)
+    console.error('Error stack:', error.stack)
     return NextResponse.json({ 
       error: 'Failed to process checkout',
-      details: process.env.NODE_ENV === 'development' ? error.message : undefined
+      message: error.message,
+      details: process.env.NODE_ENV === 'development' ? error.stack : undefined
     }, { status: 500 })
   }
 }

@@ -1,1 +1,130 @@
-import { NextRequest, NextResponse } from 'next/server'\nimport { logger } from './logger'\n\n// Rate limiting store (in production, use Redis)\nconst rateLimitStore = new Map<string, { count: number; resetTime: number }>()\n\nexport class SecurityMiddleware {\n  // Rate limiting\n  static rateLimit(windowMs: number = 60000, maxRequests: number = 100) {\n    return (req: NextRequest) => {\n      const ip = req.ip || req.headers.get('x-forwarded-for') || 'unknown'\n      const key = `${ip}:${req.nextUrl.pathname}`\n      const now = Date.now()\n      \n      const record = rateLimitStore.get(key)\n      \n      if (!record || now > record.resetTime) {\n        rateLimitStore.set(key, { count: 1, resetTime: now + windowMs })\n        return true\n      }\n      \n      if (record.count >= maxRequests) {\n        logger.warn('Rate limit exceeded', { ip, path: req.nextUrl.pathname })\n        return false\n      }\n      \n      record.count++\n      return true\n    }\n  }\n\n  // Input sanitization\n  static sanitizeInput(input: any): any {\n    if (typeof input === 'string') {\n      return input\n        .replace(/<script[^>]*>.*?<\\/script>/gi, '')\n        .replace(/<[^>]*>/g, '')\n        .trim()\n    }\n    \n    if (Array.isArray(input)) {\n      return input.map(item => this.sanitizeInput(item))\n    }\n    \n    if (typeof input === 'object' && input !== null) {\n      const sanitized: any = {}\n      for (const [key, value] of Object.entries(input)) {\n        sanitized[key] = this.sanitizeInput(value)\n      }\n      return sanitized\n    }\n    \n    return input\n  }\n\n  // SQL injection prevention\n  static validateSqlInput(input: string): boolean {\n    const sqlPatterns = [\n      /('|(\\-\\-)|(;)|(\\||\\|)|(\\*|\\*))/i,\n      /(union|select|insert|delete|update|drop|create|alter|exec|execute)/i\n    ]\n    \n    return !sqlPatterns.some(pattern => pattern.test(input))\n  }\n\n  // CSRF token validation\n  static validateCsrfToken(req: NextRequest): boolean {\n    const token = req.headers.get('x-csrf-token')\n    const sessionToken = req.cookies.get('csrf-token')?.value\n    \n    if (!token || !sessionToken) {\n      return false\n    }\n    \n    return token === sessionToken\n  }\n\n  // Request validation middleware\n  static validateRequest(req: NextRequest): NextResponse | null {\n    // Check rate limiting\n    const rateLimiter = this.rateLimit(60000, 100)\n    if (!rateLimiter(req)) {\n      return NextResponse.json(\n        { error: 'Too many requests' },\n        { status: 429 }\n      )\n    }\n\n    // Validate content type for POST requests\n    if (req.method === 'POST') {\n      const contentType = req.headers.get('content-type')\n      if (!contentType?.includes('application/json')) {\n        return NextResponse.json(\n          { error: 'Invalid content type' },\n          { status: 400 }\n        )\n      }\n    }\n\n    // Log suspicious activity\n    const userAgent = req.headers.get('user-agent')\n    if (!userAgent || userAgent.length < 10) {\n      logger.warn('Suspicious request - missing or short user agent', {\n        ip: req.ip,\n        path: req.nextUrl.pathname,\n        userAgent\n      })\n    }\n\n    return null\n  }\n\n  // Clean up rate limit store periodically\n  static cleanupRateLimit() {\n    const now = Date.now()\n    for (const [key, record] of rateLimitStore.entries()) {\n      if (now > record.resetTime) {\n        rateLimitStore.delete(key)\n      }\n    }\n  }\n}\n\n// Cleanup interval (run every 5 minutes)\nif (typeof window === 'undefined') {\n  setInterval(() => {\n    SecurityMiddleware.cleanupRateLimit()\n  }, 5 * 60 * 1000)\n}
+import { NextRequest, NextResponse } from 'next/server'
+import { logger } from './logger'
+
+// Rate limiting store (in production, use Redis)
+const rateLimitStore = new Map<string, { count: number; resetTime: number }>()
+
+export class SecurityMiddleware {
+  // Rate limiting
+  static rateLimit(windowMs: number = 60000, maxRequests: number = 100) {
+    return (req: NextRequest) => {
+      const ip = req.ip || req.headers.get('x-forwarded-for') || 'unknown'
+      const key = `${ip}:${req.nextUrl.pathname}`
+      const now = Date.now()
+      
+      const record = rateLimitStore.get(key)
+      
+      if (!record || now > record.resetTime) {
+        rateLimitStore.set(key, { count: 1, resetTime: now + windowMs })
+        return true
+      }
+      
+      if (record.count >= maxRequests) {
+        logger.warn('Rate limit exceeded', { ip, path: req.nextUrl.pathname })
+        return false
+      }
+      
+      record.count++
+      return true
+    }
+  }
+
+  // Input sanitization
+  static sanitizeInput(input: any): any {
+    if (typeof input === 'string') {
+      return input
+        .replace(/<script[^>]*>.*?<\/script>/gi, '')
+        .replace(/<[^>]*>/g, '')
+        .trim()
+    }
+    
+    if (Array.isArray(input)) {
+      return input.map(item => this.sanitizeInput(item))
+    }
+    
+    if (typeof input === 'object' && input !== null) {
+      const sanitized: any = {}
+      for (const [key, value] of Object.entries(input)) {
+        sanitized[key] = this.sanitizeInput(value)
+      }
+      return sanitized
+    }
+    
+    return input
+  }
+
+  // SQL injection prevention
+  static validateSqlInput(input: string): boolean {
+    const sqlPatterns = [
+      /('|(--)|(\;)|(\||\|)|(\*|\*))/i,
+      /(union|select|insert|delete|update|drop|create|alter|exec|execute)/i
+    ]
+    
+    return !sqlPatterns.some(pattern => pattern.test(input))
+  }
+
+  // CSRF token validation
+  static validateCsrfToken(req: NextRequest): boolean {
+    const token = req.headers.get('x-csrf-token')
+    const sessionToken = req.cookies.get('csrf-token')?.value
+    
+    if (!token || !sessionToken) {
+      return false
+    }
+    
+    return token === sessionToken
+  }
+
+  // Request validation middleware
+  static validateRequest(req: NextRequest): NextResponse | null {
+    // Check rate limiting
+    const rateLimiter = this.rateLimit(60000, 100)
+    if (!rateLimiter(req)) {
+      return NextResponse.json(
+        { error: 'Too many requests' },
+        { status: 429 }
+      )
+    }
+
+    // Validate content type for POST requests
+    if (req.method === 'POST') {
+      const contentType = req.headers.get('content-type')
+      if (!contentType?.includes('application/json')) {
+        return NextResponse.json(
+          { error: 'Invalid content type' },
+          { status: 400 }
+        )
+      }
+    }
+
+    // Log suspicious activity
+    const userAgent = req.headers.get('user-agent')
+    if (!userAgent || userAgent.length < 10) {
+      logger.warn('Suspicious request - missing or short user agent', {
+        ip: req.ip,
+        path: req.nextUrl.pathname,
+        userAgent
+      })
+    }
+
+    return null
+  }
+
+  // Clean up rate limit store periodically
+  static cleanupRateLimit() {
+    const now = Date.now()
+    const entries = Array.from(rateLimitStore.entries())
+    for (const [key, record] of entries) {
+      if (now > record.resetTime) {
+        rateLimitStore.delete(key)
+      }
+    }
+  }
+}
+
+// Cleanup interval (run every 5 minutes)
+if (typeof window === 'undefined') {
+  setInterval(() => {
+    SecurityMiddleware.cleanupRateLimit()
+  }, 5 * 60 * 1000)
+}

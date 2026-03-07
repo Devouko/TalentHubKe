@@ -1,35 +1,62 @@
 'use client'
 
-import { useState } from 'react'
-import { signIn } from 'next-auth/react'
+import { useState, useEffect } from 'react'
+import { signIn, useSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import Alert from '../../components/ui/Alert'
-import { useRoleBasedRedirect } from '../../hooks/useRoleBasedRedirect'
 
-export default function SignInPage() {
-  const [formData, setFormData] = useState({ email: '', password: '' })
+export default function AuthPage() {
+  const [isSignUp, setIsSignUp] = useState(false)
+  const [formData, setFormData] = useState({ name: '', email: '', password: '' })
   const [loading, setLoading] = useState(false)
-  const [alert, setAlert] = useState<{ type: 'success' | 'error', message: string } | null>(null)
+  const [error, setError] = useState('')
   const router = useRouter()
-  const { session } = useRoleBasedRedirect()
+  const { data: session } = useSession()
 
-  // Redirect if already authenticated
+  useEffect(() => {
+    if (session) {
+      // Role-based redirect
+      if (session.user.userType === 'ADMIN') {
+        router.push('/admin')
+      } else if (session.user.userType === 'FREELANCER' || session.user.userType === 'AGENCY') {
+        router.push('/seller-dashboard')
+      } else {
+        router.push('/dashboard')
+      }
+    }
+  }, [session, router])
+
   if (session) return null
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setLoading(true)
-    setAlert(null)
+    setError('')
 
     try {
-      const result = await signIn('credentials', {
-        email: formData.email,
-        password: formData.password,
-        callbackUrl: '/dashboard' // This will be overridden by NextAuth redirect callback
-      })
-    } catch (error) {
-      setAlert({ type: 'error', message: 'An error occurred during sign in' })
+      if (isSignUp) {
+        const res = await fetch('/api/auth/register', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(formData)
+        })
+        if (!res.ok) throw new Error('Registration failed')
+        const signInResult = await signIn('credentials', { 
+          email: formData.email, 
+          password: formData.password, 
+          redirect: false 
+        })
+        if (signInResult?.error) throw new Error(signInResult.error)
+      } else {
+        const signInResult = await signIn('credentials', { 
+          email: formData.email, 
+          password: formData.password, 
+          redirect: false 
+        })
+        if (signInResult?.error) throw new Error(signInResult.error)
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Authentication failed')
     } finally {
       setLoading(false)
     }
@@ -50,12 +77,35 @@ export default function SignInPage() {
 
           {/* Welcome Text */}
           <div className="mb-6 lg:mb-8">
-            <h1 className="text-2xl sm:text-3xl font-medium text-white mb-2">Welcome back</h1>
-            <p className="text-gray-400 text-sm sm:text-base">Sign in to access your talent marketplace dashboard</p>
+            <h1 className="text-2xl sm:text-3xl font-medium text-white mb-2">
+              {isSignUp ? 'Create account' : 'Welcome back'}
+            </h1>
+            <p className="text-gray-400 text-sm sm:text-base">
+              {isSignUp ? 'Join the talent marketplace today' : 'Sign in to access your talent marketplace dashboard'}
+            </p>
           </div>
+
+          {error && (
+            <div className="mb-4 p-3 bg-red-500/10 border border-red-500/20 rounded-lg text-red-400 text-sm">
+              {error}
+            </div>
+          )}
 
           {/* Form */}
           <form onSubmit={handleSubmit} className="space-y-4">
+            {isSignUp && (
+              <div>
+                <label className="block text-sm text-gray-300 mb-2">Name</label>
+                <input
+                  type="text"
+                  value={formData.name}
+                  onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
+                  className="w-full px-4 py-3 bg-gray-900 border border-gray-700 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:border-gray-500 transition-colors text-sm sm:text-base"
+                  placeholder="Enter your name"
+                  required
+                />
+              </div>
+            )}
             <div>
               <label className="block text-sm text-gray-300 mb-2">Email</label>
               <input
@@ -85,9 +135,11 @@ export default function SignInPage() {
                 <input type="checkbox" className="mr-2 rounded" />
                 Remember me
               </label>
-              <Link href="#" className="text-blue-400 hover:text-blue-300">
-                Forgot password?
-              </Link>
+              {!isSignUp && (
+                <Link href="#" className="text-blue-400 hover:text-blue-300">
+                  Forgot password?
+                </Link>
+              )}
             </div>
 
             <button
@@ -95,15 +147,15 @@ export default function SignInPage() {
               disabled={loading}
               className="w-full bg-white text-black py-3 rounded-lg font-medium hover:bg-gray-100 transition-colors disabled:opacity-50 disabled:cursor-not-allowed text-sm sm:text-base"
             >
-              {loading ? 'Signing in...' : 'Sign in'}
+              {loading ? (isSignUp ? 'Creating account...' : 'Signing in...') : (isSignUp ? 'Sign up' : 'Sign in')}
             </button>
           </form>
 
           <p className="text-center text-xs sm:text-sm text-gray-400 mt-6">
-            Don't have an account?{' '}
-            <Link href="/auth/signup" className="text-blue-400 hover:text-blue-300">
-              Sign up
-            </Link>
+            {isSignUp ? 'Already have an account?' : "Don't have an account?"}{' '}
+            <button onClick={() => setIsSignUp(!isSignUp)} className="text-blue-400 hover:text-blue-300">
+              {isSignUp ? 'Sign in' : 'Sign up'}
+            </button>
           </p>
         </div>
       </div>
@@ -147,14 +199,6 @@ export default function SignInPage() {
           </div>
         </div>
       </div>
-      
-      {alert && (
-        <Alert 
-          type={alert.type} 
-          message={alert.message} 
-          onClose={() => setAlert(null)} 
-        />
-      )}
     </div>
   )
 }

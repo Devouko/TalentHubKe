@@ -1,14 +1,10 @@
-import { NextRequest, NextResponse } from 'next/server'
-import { getServerSession } from 'next-auth'
-import { authOptions } from '@/lib/auth'
+import { NextRequest } from 'next/server'
 import { prisma } from '@/lib/prisma'
+import { handleApiError, requireAdmin, apiResponse } from '@/lib/api-utils'
 
 export async function GET() {
   try {
-    const session = await getServerSession(authOptions)
-    if (!session || session.user.userType !== 'ADMIN') {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
+    await requireAdmin()
 
     const users = await prisma.users.findMany({
       select: {
@@ -34,19 +30,15 @@ export async function GET() {
       orderBy: { createdAt: 'desc' }
     })
 
-    return NextResponse.json(users)
+    return apiResponse(users)
   } catch (error) {
-    console.error('Users fetch error:', error)
-    return NextResponse.json({ error: 'Failed to fetch users' }, { status: 500 })
+    return handleApiError(error)
   }
 }
 
 export async function POST(request: NextRequest) {
   try {
-    const session = await getServerSession(authOptions)
-    if (!session || session.user.userType !== 'ADMIN') {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
+    await requireAdmin()
 
     const { email, name, userType, password } = await request.json()
     
@@ -54,9 +46,8 @@ export async function POST(request: NextRequest) {
       data: { email, name, userType, password, id: crypto.randomUUID() }
     })
 
-    return NextResponse.json(user)
+    return apiResponse(user)
   } catch (error) {
-    console.error('User creation error:', error)
-    return NextResponse.json({ error: 'Failed to create user' }, { status: 500 })
+    return handleApiError(error)
   }
 }

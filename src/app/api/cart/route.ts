@@ -15,7 +15,7 @@ export async function GET(request: NextRequest) {
     const cart = await prisma.cart.findMany({
       where: { userId: session.user.id },
       include: {
-        product: {
+        products: {
           select: {
             id: true,
             title: true,
@@ -69,12 +69,14 @@ export async function POST(request: NextRequest) {
         updatedAt: new Date()
       },
       create: {
+        id: `cart_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
         userId: session.user.id,
         productId: validatedData.productId,
-        quantity: validatedData.quantity
+        quantity: validatedData.quantity,
+        updatedAt: new Date()
       },
       include: {
-        product: {
+        products: {
           select: {
             id: true,
             title: true,

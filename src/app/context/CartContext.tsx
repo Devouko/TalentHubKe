@@ -56,14 +56,14 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
         const mappedCart = data.cart.map((item: any) => ({
           id: item.productId || item.id,
           gigId: item.productId || item.id,
-          title: item.product?.title || item.title || 'Product',
+          title: item.products?.title || item.product?.title || item.title || 'Product',
           seller: 'Digital Store',
-          price: item.product?.price || item.price || 0,
+          price: item.products?.price || item.product?.price || item.price || 0,
           quantity: item.quantity || 1,
           deliveryTime: 0,
-          thumbnail: item.product?.images?.[0] || item.thumbnail || '',
+          thumbnail: item.products?.images?.[0] || item.product?.images?.[0] || item.thumbnail || '',
           tier: 'basic' as const,
-          category: item.product?.category || item.category || 'Digital Products'
+          category: item.products?.category || item.product?.category || item.category || 'Digital Products'
         }))
         console.log('Mapped cart:', mappedCart)
         setCart(mappedCart)
@@ -106,6 +106,7 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
       
       if (data.success) {
         toast.success('Added to cart!')
+        await refreshCart()
         return data
       } else {
         throw new Error('Failed to add to cart')
@@ -178,11 +179,7 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
   }
 
   const goToCheckout = () => {
-    if (cart.length === 0) {
-      toast.error('Your cart is empty');
-      return;
-    }
-    router.push('/checkout');
+    router.push('/cart');
   };
 
   const subtotal = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);

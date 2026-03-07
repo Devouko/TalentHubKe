@@ -15,11 +15,11 @@ export default function AdminEscrowPage() {
 
   const fetchTransactions = async () => {
     try {
-      // Mock data for now
-      setTransactions([
-        { id: '1', amount: 15000, status: 'pending', buyer: 'John Doe', seller: 'Jane Smith', createdAt: new Date().toISOString() },
-        { id: '2', amount: 25000, status: 'completed', buyer: 'Mike Johnson', seller: 'Sarah Wilson', createdAt: new Date().toISOString() }
-      ])
+      const response = await fetch('/api/admin/escrow')
+      if (response.ok) {
+        const data = await response.json()
+        setTransactions(data)
+      }
     } catch (error) {
       console.error('Error fetching transactions:', error)
     } finally {
@@ -28,8 +28,9 @@ export default function AdminEscrowPage() {
   }
 
   const filteredTransactions = transactions.filter(tx =>
-    tx.buyer?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    tx.seller?.toLowerCase().includes(searchTerm.toLowerCase())
+    tx.buyer?.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    tx.seller?.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    tx.id?.toLowerCase().includes(searchTerm.toLowerCase())
   )
 
   return (
@@ -75,8 +76,10 @@ export default function AdminEscrowPage() {
                       <tr key={tx.id} className="hover:bg-gray-700">
                         <td className="px-6 py-4 whitespace-nowrap">
                           <div>
-                            <div className="text-sm font-medium text-white">{tx.buyer} → {tx.seller}</div>
-                            <div className="text-sm text-gray-400">ID: {tx.id}</div>
+                            <div className="text-sm font-medium text-white">
+                              {tx.buyer?.name || 'Unknown'} → {tx.seller?.name || 'Unknown'}
+                            </div>
+                            <div className="text-sm text-gray-400">ID: {tx.id.slice(0, 8)}...</div>
                           </div>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-green-400 font-bold">

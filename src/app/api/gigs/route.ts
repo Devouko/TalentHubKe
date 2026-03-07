@@ -7,6 +7,7 @@ export async function GET(request: NextRequest) {
   return ApiService.handleRequest(async () => {
     const { searchParams } = new URL(request.url)
     const id = searchParams.get('id')
+    const sellerId = searchParams.get('sellerId')
     
     if (id) {
       const gig = await prisma.gigs.findUnique({
@@ -19,9 +20,16 @@ export async function GET(request: NextRequest) {
       if (!gig) throw new Error('Gig not found')
       return gig
     }
+
+    let whereClause: any = { isActive: true }
+    if (sellerId) {
+      whereClause.sellerId = sellerId
+      // For seller dashboard, maybe show inactive too? 
+      // Existing API always filtered by isActive: true
+    }
     
     return await prisma.gigs.findMany({
-      where: { isActive: true },
+      where: whereClause,
       include: {
         users: { select: { id: true, name: true, email: true } }
       },

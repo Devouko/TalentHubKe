@@ -1,4 +1,4 @@
-import { UserType, SellerStatus, StockStatus, StockChangeType } from '@prisma/client'
+import { UserType, SellerStatus } from '@prisma/client'
 
 export interface ApiResponse<T = any> {
   success: boolean
@@ -27,6 +27,9 @@ export interface User {
   isVerified: boolean
   sellerStatus: SellerStatus
 }
+
+export type StockStatus = 'IN_STOCK' | 'LOW_STOCK' | 'OUT_OF_STOCK'
+export type StockChangeType = 'PURCHASE' | 'RESTOCK' | 'ADJUSTMENT' | 'RETURN'
 
 export interface Product {
   id: string

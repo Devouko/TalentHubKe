@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import bcrypt from 'bcryptjs';
 import { prisma } from '@/lib/prisma';
 import { randomUUID } from 'crypto';
+import { handleApiError, apiResponse } from '@/lib/api-utils';
 
 export async function POST(request: Request) {
   try {
@@ -38,15 +39,14 @@ export async function POST(request: Request) {
       }
     });
 
-    return NextResponse.json({
+    return apiResponse({
       id: user.id,
       email: user.email,
       name: user.name,
       userType: user.userType
-    }, { status: 201 });
+    }, 201);
 
   } catch (error) {
-    console.error('Signup error:', error);
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    return handleApiError(error);
   }
 }

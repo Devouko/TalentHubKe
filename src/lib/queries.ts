@@ -26,7 +26,7 @@ export async function fetchProducts(filters: ProductFilters) {
   if (isActive !== undefined) where.isActive = isActive
 
   const [products, total] = await Promise.all([
-    prisma.product.findMany({
+    prisma.products.findMany({
       where,
       include: {
         category: { select: { id: true, name: true, slug: true } },
@@ -36,7 +36,7 @@ export async function fetchProducts(filters: ProductFilters) {
       skip: (page - 1) * limit,
       take: limit
     }),
-    prisma.product.count({ where })
+    prisma.products.count({ where })
   ])
 
   return {
@@ -51,7 +51,7 @@ export async function fetchProducts(filters: ProductFilters) {
 }
 
 export async function fetchProductById(id: string) {
-  return prisma.product.findFirst({
+  return prisma.products.findFirst({
     where: { id, deletedAt: null },
     include: {
       category: true,

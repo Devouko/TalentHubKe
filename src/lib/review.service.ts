@@ -66,8 +66,7 @@ export class ReviewService {
       throw new ValidationError('Gig ID and Order ID are required')
     }
 
-    // Validate order exists and belongs to user
-    const order = await prisma.order.findFirst({
+    const order = await prisma.orders.findFirst({
       where: {
         id: data.orderId,
         buyerId: userId,
@@ -80,8 +79,7 @@ export class ReviewService {
       throw new ValidationError('Order not found or not eligible for review')
     }
 
-    // Check if review already exists
-    const existingReview = await prisma.review.findUnique({
+    const existingReview = await prisma.reviews.findUnique({
       where: { orderId: data.orderId }
     })
 
@@ -89,34 +87,35 @@ export class ReviewService {
       throw new ValidationError('Review already exists for this order')
     }
 
-    const review = await prisma.review.create({
+    const review = await prisma.reviews.create({
       data: {
         rating: data.rating,
-        comment: data.comment,
+        comment: data.comment || '',
         images: data.images || [],
         reviewerId: userId,
         gigId: data.gigId,
         orderId: data.orderId,
-        isVerified: true
-      },
-      include: {
-        reviewer: { select: { id: true, name: true, image: true } },
-        gig: { select: { id: true, title: true } }
+        isVerified: true,
+        createdAt: new Date()
       }
     })
 
-    // Update gig rating
+    const [reviewer, gig] = await Promise.all([
+      prisma.users.findUnique({ where: { id: userId }, select: { id: true, name: true, image: true } }),
+      prisma.gigs.findUnique({ where: { id: data.gigId }, select: { id: true, title: true } })
+    ])
+
     await this.updateGigRating(data.gigId)
     
     return {
       id: review.id,
       rating: review.rating,
-      comment: review.comment,
+      comment: review.comment || '',
       images: review.images,
       isVerified: review.isVerified,
       createdAt: review.createdAt.toISOString(),
-      reviewer: review.reviewer,
-      gig: review.gig
+      reviewer: reviewer!,
+      gig: gig || undefined
     }
   }
 
@@ -129,19 +128,21 @@ export class ReviewService {
       throw new ValidationError('Product ID is required')
     }
 
-    const review = await prisma.productReview.create({
+    const review = await prisma.product_reviews.create({
       data: {
         rating: data.rating,
         comment: data.comment || '',
         userId,
         productId: data.productId,
-        isVerified: false
-      },
-      include: {
-        user: { select: { id: true, name: true, image: true } },
-        product: { select: { id: true, title: true } }
+        isVerified: false,
+        createdAt: new Date()
       }
     })
+
+    const [user, product] = await Promise.all([
+      prisma.users.findUnique({ where: { id: userId }, select: { id: true, name: true, image: true } }),
+      prisma.products.findUnique({ where: { id: data.productId }, select: { id: true, title: true } })
+    ])
 
     await this.updateProductRating(data.productId)
     
@@ -152,8 +153,8 @@ export class ReviewService {
       images: [],
       isVerified: review.isVerified,
       createdAt: review.createdAt.toISOString(),
-      reviewer: review.user,
-      product: review.product
+      reviewer: user!,
+      product: product || undefined
     }
   }
 
@@ -166,29 +167,32 @@ export class ReviewService {
       throw new ValidationError('Rating must be between 1 and 5')
     }
 
-    const review = await prisma.sellerReview.create({
+    const review = await prisma.seller_reviews.create({
       data: {
         sellerId: data.sellerId,
         reviewerId: userId,
         rating: data.rating,
-        comment: data.comment,
-        orderId: data.orderId
-      },
-      include: {
-        reviewer: { select: { id: true, name: true, image: true } },
-        order: { select: { id: true, totalAmount: true } }
+        comment: data.comment || '',
+        orderId: data.orderId,
+        createdAt: new Date(),
+        updatedAt: new Date()
       }
     })
+
+    const [reviewer, order] = await Promise.all([
+      prisma.users.findUnique({ where: { id: userId }, select: { id: true, name: true, image: true } }),
+      data.orderId ? prisma.orders.findUnique({ where: { id: data.orderId }, select: { id: true, totalAmount: true } }) : Promise.resolve(null)
+    ])
 
     await this.updateSellerRating(data.sellerId)
     
     return {
       id: review.id,
       rating: review.rating,
-      comment: review.comment,
+      comment: review.comment || '',
       createdAt: review.createdAt.toISOString(),
-      reviewer: review.reviewer,
-      order: review.order
+      reviewer: reviewer!,
+      order: order || undefined
     }
   }
 
@@ -196,30 +200,35 @@ export class ReviewService {
     if (!gigId) throw new ValidationError('Gig ID is required')
     
     const [reviews, total, gig] = await Promise.all([
-      prisma.review.findMany({
+      prisma.reviews.findMany({
         where: { gigId },
-        include: {
-          reviewer: { select: { id: true, name: true, image: true } },
-          gig: { select: { id: true, title: true } }
-        },
         orderBy: { createdAt: 'desc' },
         skip: (page - 1) * limit,
         take: limit
       }),
-      prisma.review.count({ where: { gigId } }),
-      prisma.gig.findUnique({ where: { id: gigId }, select: { rating: true } })
+      prisma.reviews.count({ where: { gigId } }),
+      prisma.gigs.findUnique({ where: { id: gigId }, select: { rating: true } })
     ])
+
+    const reviewerIds = reviews.map(r => r.reviewerId)
+    const reviewers = await prisma.users.findMany({
+      where: { id: { in: reviewerIds } },
+      select: { id: true, name: true, image: true }
+    })
+    const reviewerMap = new Map(reviewers.map(r => [r.id, r]))
+
+    const gigData = await prisma.gigs.findUnique({ where: { id: gigId }, select: { id: true, title: true } })
 
     return {
       reviews: reviews.map(review => ({
         id: review.id,
         rating: review.rating,
-        comment: review.comment,
+        comment: review.comment || '',
         images: review.images,
         isVerified: review.isVerified,
         createdAt: review.createdAt.toISOString(),
-        reviewer: review.reviewer,
-        gig: review.gig
+        reviewer: reviewerMap.get(review.reviewerId)!,
+        gig: gigData || undefined
       })),
       total,
       averageRating: gig?.rating || 0
@@ -230,19 +239,24 @@ export class ReviewService {
     if (!productId) throw new ValidationError('Product ID is required')
     
     const [reviews, total, product] = await Promise.all([
-      prisma.productReview.findMany({
+      prisma.product_reviews.findMany({
         where: { productId },
-        include: {
-          user: { select: { id: true, name: true, image: true } },
-          product: { select: { id: true, title: true } }
-        },
         orderBy: { createdAt: 'desc' },
         skip: (page - 1) * limit,
         take: limit
       }),
-      prisma.productReview.count({ where: { productId } }),
-      prisma.product.findUnique({ where: { id: productId }, select: { rating: true } })
+      prisma.product_reviews.count({ where: { productId } }),
+      prisma.products.findUnique({ where: { id: productId }, select: { rating: true } })
     ])
+
+    const userIds = reviews.map(r => r.userId)
+    const users = await prisma.users.findMany({
+      where: { id: { in: userIds } },
+      select: { id: true, name: true, image: true }
+    })
+    const userMap = new Map(users.map(u => [u.id, u]))
+
+    const productData = await prisma.products.findUnique({ where: { id: productId }, select: { id: true, title: true } })
 
     return {
       reviews: reviews.map(review => ({
@@ -252,8 +266,8 @@ export class ReviewService {
         images: [],
         isVerified: review.isVerified,
         createdAt: review.createdAt.toISOString(),
-        reviewer: review.user,
-        product: review.product
+        reviewer: userMap.get(review.userId)!,
+        product: productData || undefined
       })),
       total,
       averageRating: product?.rating || 0
@@ -264,28 +278,41 @@ export class ReviewService {
     if (!sellerId) throw new ValidationError('Seller ID is required')
     
     const [reviews, user] = await Promise.all([
-      prisma.sellerReview.findMany({
+      prisma.seller_reviews.findMany({
         where: { sellerId },
-        include: {
-          reviewer: { select: { id: true, name: true, image: true } },
-          order: { select: { id: true, totalAmount: true } }
-        },
         orderBy: { createdAt: 'desc' }
       }),
-      prisma.user.findUnique({
+      prisma.users.findUnique({
         where: { id: sellerId },
         select: { sellerRating: true, sellerReviewCount: true }
       })
     ])
 
+    const reviewerIds = reviews.map(r => r.reviewerId)
+    const orderIds = reviews.filter(r => r.orderId).map(r => r.orderId!)
+    
+    const [reviewers, orders] = await Promise.all([
+      prisma.users.findMany({
+        where: { id: { in: reviewerIds } },
+        select: { id: true, name: true, image: true }
+      }),
+      orderIds.length > 0 ? prisma.orders.findMany({
+        where: { id: { in: orderIds } },
+        select: { id: true, totalAmount: true }
+      }) : Promise.resolve([])
+    ])
+
+    const reviewerMap = new Map(reviewers.map(r => [r.id, r]))
+    const orderMap = new Map(orders.map(o => [o.id, o]))
+
     return {
       reviews: reviews.map(review => ({
         id: review.id,
         rating: review.rating,
-        comment: review.comment,
+        comment: review.comment || '',
         createdAt: review.createdAt.toISOString(),
-        reviewer: review.reviewer,
-        order: review.order
+        reviewer: reviewerMap.get(review.reviewerId)!,
+        order: review.orderId ? orderMap.get(review.orderId) : undefined
       })),
       averageRating: user?.sellerRating || 0,
       totalReviews: user?.sellerReviewCount || 0
@@ -293,13 +320,13 @@ export class ReviewService {
   }
 
   private static async updateGigRating(gigId: string) {
-    const stats = await prisma.review.aggregate({
+    const stats = await prisma.reviews.aggregate({
       where: { gigId },
       _avg: { rating: true },
       _count: { rating: true }
     })
 
-    await prisma.gig.update({
+    await prisma.gigs.update({
       where: { id: gigId },
       data: {
         rating: Math.round((stats._avg.rating || 0) * 10) / 10,
@@ -309,13 +336,13 @@ export class ReviewService {
   }
 
   private static async updateProductRating(productId: string) {
-    const stats = await prisma.productReview.aggregate({
+    const stats = await prisma.product_reviews.aggregate({
       where: { productId },
       _avg: { rating: true },
       _count: { rating: true }
     })
 
-    await prisma.product.update({
+    await prisma.products.update({
       where: { id: productId },
       data: {
         rating: Math.round((stats._avg.rating || 0) * 10) / 10,
@@ -324,3 +351,19 @@ export class ReviewService {
     })
   }
 
+  private static async updateSellerRating(sellerId: string) {
+    const stats = await prisma.seller_reviews.aggregate({
+      where: { sellerId },
+      _avg: { rating: true },
+      _count: { rating: true }
+    })
+
+    await prisma.users.update({
+      where: { id: sellerId },
+      data: {
+        sellerRating: Math.round((stats._avg.rating || 0) * 10) / 10,
+        sellerReviewCount: stats._count.rating
+      }
+    })
+  }
+}

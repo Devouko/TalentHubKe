@@ -86,19 +86,36 @@ model escrow_items {
 }
 
 model escrow_transactions {
-  id                                        String         @id
+  id                                        String              @id
   amount                                    Float
-  status                                    EscrowStatus   @default(PENDING)
+  currency                                  String              @default("KES")
+  platformFeePercent                        Float               @default(0.025)
+  platformFee                               Float?
+  sellerPayout                              Float?
+  status                                    EscrowStatus        @default(PENDING)
   buyerId                                   String
   sellerId                                  String?
-  productId                                 String
+  orderId                                   String?             @unique
+  productId                                 String?
+  paymentRef                                String?
+  proofOfDelivery                           Json?
   adminNotes                                String?
-  createdAt                                 DateTime       @default(now())
+  metadata                                  Json?
+  expiresAt                                 DateTime?
+  deliveryDeadline                          DateTime?
+  confirmationDeadline                      DateTime?
+  fundedAt                                  DateTime?
+  deliveredAt                               DateTime?
+  releasedAt                                DateTime?
+  refundedAt                                DateTime?
+  createdAt                                 DateTime            @default(now())
   updatedAt                                 DateTime
   escrow_items                              escrow_items[]
-  users_escrow_transactions_buyerIdTousers  users          @relation("escrow_transactions_buyerIdTousers", fields: [buyerId], references: [id])
-  products                                  products       @relation(fields: [productId], references: [id])
-  users_escrow_transactions_sellerIdTousers users?         @relation("escrow_transactions_sellerIdTousers", fields: [sellerId], references: [id])
+  escrow_audit_logs                         escrow_audit_logs[]
+  escrow_disputes                           escrow_disputes?
+  users_escrow_transactions_buyerIdTousers  users               @relation("escrow_transactions_buyerIdTousers", fields: [buyerId], references: [id])
+  products                                  products?           @relation(fields: [productId], references: [id])
+  users_escrow_transactions_sellerIdTousers users?              @relation("escrow_transactions_sellerIdTousers", fields: [sellerId], references: [id])
 }
 
 model gigs {
@@ -479,6 +496,8 @@ model users {
   system_backups                                          system_backups[]
   system_logs                                             system_logs[]
   wishlist_items                                          wishlist_items[]
+  disputes_raised                                         escrow_disputes[]     @relation("dispute_raiser")
+  disputes_resolved                                       escrow_disputes[]     @relation("dispute_resolver")
 }
 
 model wishlist_items {
@@ -490,6 +509,33 @@ model wishlist_items {
   users     users    @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([userId, productId])
+}
+
+model escrow_audit_logs {
+  id        String              @id
+  escrowId  String
+  event     String
+  actor     String
+  data      Json?
+  timestamp DateTime            @default(now())
+  escrow    escrow_transactions @relation(fields: [escrowId], references: [id], onDelete: Cascade)
+}
+
+model escrow_disputes {
+  id         String              @id
+  escrowId   String              @unique
+  raisedBy   String
+  reason     String
+  evidence   Json?
+  status     DisputeStatus       @default(OPEN)
+  resolution String?
+  resolvedBy String?
+  notes      String?
+  createdAt  DateTime            @default(now())
+  resolvedAt DateTime?
+  escrow     escrow_transactions @relation(fields: [escrowId], references: [id], onDelete: Cascade)
+  raiser     users               @relation("dispute_raiser", fields: [raisedBy], references: [id])
+  resolver   users?              @relation("dispute_resolver", fields: [resolvedBy], references: [id])
 }
 
 enum ApplicationStatus {
@@ -523,6 +569,14 @@ enum EscrowStatus {
   REJECTED
   COMPLETED
   REFUNDED
+  INITIATED
+  FUNDED
+  IN_PROGRESS
+  DELIVERED
+  DISPUTED
+  RELEASED
+  CANCELLED
+  EXPIRED
 }
 
 enum InterviewStatus {
@@ -606,4 +660,11 @@ enum UserType {
   FREELANCER
   AGENCY
   ADMIN
+}
+
+enum DisputeStatus {
+  OPEN
+  UNDER_REVIEW
+  RESOLVED
+  CLOSED
 }

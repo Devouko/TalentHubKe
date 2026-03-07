@@ -1,214 +1,154 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { Search, ShoppingCart as CartIcon } from 'lucide-react'
-import AddToCartButton from '@/components/AddToCartButton'
-import { useCart } from '../context/CartContext'
+import { ShoppingCart, Package, Search, Filter } from 'lucide-react'
+import DashboardLayout from '@/components/layouts/DashboardLayout'
+import { CATEGORY_OPTIONS } from '@/constants/categories'
 
-const categories = ['All', 'Accounts', 'Digital-products', 'Proxies', 'Bulk_Gmails', 'KYC']
-
-interface Product {
-  id: string
-  title: string
-  description: string
-  price: number
-  images: string[]
-  category: string
-  rating: number
-  reviewCount: number
-  stock: number
-}
-
-export default function Products() {
+export default function ProductsPage() {
   const router = useRouter()
-  const [products, setProducts] = useState<Product[]>([])
+  const [products, setProducts] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
-  const [error, setError] = useState('')
-  const [searchQuery, setSearchQuery] = useState('')
+  const [searchTerm, setSearchTerm] = useState('')
   const [selectedCategory, setSelectedCategory] = useState('All')
-  const { cart } = useCart()
 
   useEffect(() => {
-    const fetchProducts = async () => {
-      try {
-        setLoading(true)
-        setError('')
-        
-        const response = await fetch('/api/products')
-        
-        if (!response.ok) {
-          throw new Error(`HTTP error! status: ${response.status}`)
-        }
-        
-        const data = await response.json()
-        
-        if (data.error) {
-          setError(data.error)
-          setProducts([])
-        } else {
-          setProducts(data.products || [])
-        }
-      } catch (err) {
-        console.error('Error fetching products:', err)
-        setError('Failed to load products')
-        setProducts([])
-      } finally {
-        setLoading(false)
-      }
-    }
-
     fetchProducts()
-  }, [])
+  }, [selectedCategory])
 
-  const filteredProducts = products.filter(product => {
-    const matchesSearch = searchQuery ? (
-      product.title?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      product.description?.toLowerCase().includes(searchQuery.toLowerCase())
-    ) : true
-    
-    const matchesCategory = selectedCategory === 'All' || product.category === selectedCategory
-    
-    return matchesSearch && matchesCategory
-  })
+  const fetchProducts = async () => {
+    try {
+      const url = selectedCategory === 'All' 
+        ? '/api/products' 
+        : `/api/products?category=${selectedCategory}`
+      const response = await fetch(url)
+      const data = await response.json()
+      setProducts(data.products || [])
+    } catch (error) {
+      console.error('Error fetching products:', error)
+    } finally {
+      setLoading(false)
+    }
+  }
 
-  if (error) {
+  const filteredProducts = products.filter(product =>
+    product.title?.toLowerCase().includes(searchTerm.toLowerCase())
+  )
+
+  if (loading) {
     return (
-      <div className="min-h-screen bg-slate-50 dark:bg-slate-900 flex items-center justify-center">
-        <div className="text-center max-w-md mx-auto p-6">
-          <div className="text-red-500 mb-4 text-6xl">⚠️</div>
-          <h2 className="text-xl font-bold mb-2">Failed to load products</h2>
-          <p className="text-slate-600 dark:text-slate-400 mb-4">{error}</p>
-          <button 
-            onClick={() => window.location.reload()}
-            className="px-4 py-2 bg-purple-500 text-white rounded-lg hover:bg-purple-600"
-          >
-            Retry
-          </button>
+      <DashboardLayout>
+        <div className="flex items-center justify-center py-24">
+          <div className="animate-spin rounded-full h-12 w-12 border-4 border-slate-100 border-t-blue-600"></div>
         </div>
-      </div>
+      </DashboardLayout>
     )
   }
 
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-slate-900">
-      <div className="max-w-7xl mx-auto px-4 py-8">
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold mb-2">TalentHub🇰🇪</h1>
-          <p className="text-slate-600 dark:text-slate-400">Browse digital products and services</p>
+    <DashboardLayout>
+      <div className="space-y-8">
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-4xl font-bold text-slate-900 dark:text-white mb-2">Products Marketplace</h1>
+            <p className="text-slate-500 dark:text-slate-400">Discover and purchase digital products</p>
+          </div>
         </div>
 
-        <div className="mb-6">
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400 w-5 h-5" />
+        <div className="flex flex-col md:flex-row gap-4">
+          <div className="relative flex-1">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-slate-400" />
             <input
               type="text"
               placeholder="Search products..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-10 pr-4 py-3 border border-slate-300 dark:border-slate-700 rounded-lg bg-white dark:bg-slate-800 focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="w-full pl-10 pr-4 py-3 border border-slate-200 dark:border-slate-800 rounded-xl bg-white dark:bg-slate-900 text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             />
           </div>
-        </div>
-
-        <div className="flex gap-2 mb-8 overflow-x-auto pb-2">
-          {categories.map((category) => (
-            <button
-              key={category}
-              onClick={() => setSelectedCategory(category)}
-              className={`px-4 py-2 rounded-lg whitespace-nowrap transition-colors ${
-                selectedCategory === category
-                  ? 'bg-purple-500 text-white'
-                  : 'bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700'
-              }`}
-            >
-              {category}
-            </button>
-          ))}
-        </div>
-
-        {loading ? (
-          <div className="flex items-center justify-center py-12">
-            <div className="text-center">
-              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-500 mx-auto mb-4"></div>
-              <p className="text-slate-600 dark:text-slate-400">Loading products...</p>
-            </div>
+          
+          <div className="flex gap-2 overflow-x-auto pb-2">
+            {['All', ...CATEGORY_OPTIONS].map(category => (
+              <button
+                key={category}
+                onClick={() => setSelectedCategory(category)}
+                className={`whitespace-nowrap px-4 py-2 rounded-xl font-semibold transition-all ${
+                  selectedCategory === category
+                    ? 'bg-blue-600 text-white shadow-lg shadow-blue-500/20'
+                    : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700'
+                }`}
+              >
+                {category}
+              </button>
+            ))}
           </div>
-        ) : filteredProducts.length === 0 ? (
-          <div className="text-center py-12">
-            <p className="text-slate-600 dark:text-slate-400">No products found</p>
+        </div>
+
+        {filteredProducts.length === 0 ? (
+          <div className="text-center py-24 bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700">
+            <Package className="w-20 h-20 text-slate-400 mx-auto mb-6 opacity-50" />
+            <h3 className="text-2xl font-semibold text-slate-700 dark:text-slate-300 mb-3">No Products Found</h3>
+            <p className="text-slate-500">Try adjusting your search or filters</p>
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {filteredProducts.map((product) => (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+            {filteredProducts.map(product => (
               <div
                 key={product.id}
-                className="bg-white dark:bg-slate-800 rounded-lg shadow-sm hover:shadow-md transition-shadow p-6 border border-slate-200 dark:border-slate-700"
+                onClick={() => router.push(`/products/${product.id}`)}
+                className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl overflow-hidden shadow-sm hover:shadow-xl transition-all duration-300 group cursor-pointer"
               >
-                <Link href={`/products/${product.id}`}>
-                  {product.images?.[0] && (
+                <div className="h-48 bg-slate-100 dark:bg-slate-900 flex items-center justify-center relative overflow-hidden">
+                  {product.images?.[0] ? (
                     <img
                       src={product.images[0]}
                       alt={product.title}
-                      className="w-full h-48 object-cover rounded-lg mb-4 cursor-pointer"
+                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                     />
+                  ) : (
+                    <Package className="w-12 h-12 text-slate-400" />
                   )}
-                  <h3 className="text-lg font-semibold mb-2 cursor-pointer hover:text-purple-500">{product.title}</h3>
-                </Link>
-                <p className="text-slate-600 dark:text-slate-400 text-sm mb-4 line-clamp-2">
-                  {product.description}
-                </p>
-                <div className="flex items-center justify-between">
-                  <span className="text-2xl font-bold text-purple-500">
-                    KSh {product.price?.toLocaleString()}
-                  </span>
-                  <div className="flex gap-2">
-                    <AddToCartButton 
-                      product={{
-                        id: product.id,
-                        title: product.title,
-                        price: product.price,
-                        images: product.images || []
-                      }}
-                      className="px-3 py-1 text-sm"
-                      redirectToCheckout={false}
-                    />
-                    <Link
-                      href={`/products/${product.id}`}
-                      className="px-4 py-2 bg-purple-500 text-white rounded-lg hover:bg-purple-600 transition-colors"
-                    >
-                      View
-                    </Link>
+                  <div className="absolute top-3 right-3">
+                    <span className="text-xs px-2 py-1 rounded-full bg-white/90 dark:bg-slate-800/90 text-slate-700 dark:text-slate-300 font-semibold backdrop-blur-sm">
+                      {product.category}
+                    </span>
                   </div>
+                </div>
+
+                <div className="p-6">
+                  <h3 className="font-bold text-slate-900 dark:text-white text-lg mb-2 line-clamp-1">
+                    {product.title}
+                  </h3>
+                  <p className="text-slate-500 text-sm mb-4 line-clamp-2 leading-relaxed">
+                    {product.description}
+                  </p>
+
+                  <div className="flex items-center justify-between mb-4">
+                    <span className="text-2xl font-black text-blue-600 dark:text-blue-400">
+                      KES {product.price?.toLocaleString()}
+                    </span>
+                    <span className="text-xs text-slate-400 bg-slate-100 dark:bg-slate-900 px-2 py-1 rounded-full">
+                      {product.stock || 0} available
+                    </span>
+                  </div>
+
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      router.push(`/products/${product.id}`)
+                    }}
+                    className="w-full bg-blue-600 hover:bg-blue-700 text-white py-3 px-4 rounded-xl font-semibold transition-all duration-200 flex items-center justify-center gap-2 shadow-lg shadow-blue-500/20"
+                  >
+                    <ShoppingCart className="w-4 h-4" />
+                    View Details
+                  </button>
                 </div>
               </div>
             ))}
           </div>
         )}
       </div>
-
-      {cart.length > 0 && (
-        <button
-          onClick={(e) => {
-            e.preventDefault()
-            e.stopPropagation()
-            console.log('Cart button clicked, navigating to checkout')
-            router.push('/checkout')
-          }}
-          className="fixed bottom-6 right-6 bg-purple-600 text-white p-4 rounded-full shadow-lg hover:bg-purple-700 transition-all hover:scale-110 cursor-pointer"
-          style={{ zIndex: 9999 }}
-          aria-label="View Cart"
-          type="button"
-        >
-          <div className="relative pointer-events-none">
-            <CartIcon className="w-6 h-6" />
-            <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center font-bold">
-              {cart.length}
-            </span>
-          </div>
-        </button>
-      )}
-    </div>
+    </DashboardLayout>
   )
 }

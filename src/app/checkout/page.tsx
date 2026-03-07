@@ -21,14 +21,34 @@ export default function CheckoutPage() {
   const [notes, setNotes] = useState('')
   const [loading, setLoading] = useState(false)
   const [phoneValid, setPhoneValid] = useState(false)
+  const [isLoadingCart, setIsLoadingCart] = useState(true)
+  const [useEscrow, setUseEscrow] = useState(false)
+  const [currentStep, setCurrentStep] = useState(1)
 
   useEffect(() => {
     if (!session) {
       router.push('/auth')
       return
     }
-    refreshCart()
-  }, [session])
+    
+    const loadCart = async () => {
+      setIsLoadingCart(true)
+      console.log('Loading cart on checkout page...')
+      try {
+        await refreshCart()
+        console.log('Cart refreshed, items:', cart.length)
+      } catch (error) {
+        console.error('Failed to load cart:', error)
+      } finally {
+        // Add delay to ensure cart state updates
+        setTimeout(() => {
+          setIsLoadingCart(false)
+        }, 500)
+      }
+    }
+    
+    loadCart()
+  }, [session, refreshCart])
 
   useEffect(() => {
     const kenyanPhoneRegex = /^(254|0)[17]\d{8}$/
@@ -67,7 +87,8 @@ export default function CheckoutPage() {
             quantity: item.quantity
           })),
           phoneNumber: cleanPhone,
-          shippingAddress: notes || 'Digital delivery'
+          shippingAddress: notes || 'Digital delivery',
+          useEscrow
         })
       })
 
@@ -77,6 +98,23 @@ export default function CheckoutPage() {
         throw new Error(orderData.error || 'Failed to create order')
       }
 
+      if (useEscrow) {
+        const escrowResponse = await fetch('/api/escrow', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            orderId: orderData.order.id,
+            amount: Math.round(total),
+            sellerId: orderData.order.sellerId || session.user.id
+          })
+        })
+
+        const escrowData = await escrowResponse.json()
+        if (!escrowResponse.ok) {
+          throw new Error(escrowData.error || 'Failed to create escrow')
+        }
+      }
+
       const mpesaResponse = await fetch('/api/mpesa/stkpush', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -84,14 +122,14 @@ export default function CheckoutPage() {
           phone: cleanPhone,
           amount: Math.round(total),
           orderId: orderData.order.id,
-          description: `Order #${orderData.order.id.slice(-8)}`
+          description: `Order #${orderData.order.id.slice(-8)}${useEscrow ? ' (Escrow)' : ''}`
         })
       })
 
       const mpesaData = await mpesaResponse.json()
 
       if (mpesaResponse.ok && mpesaData.success) {
-        toast.success('Payment request sent! Check your phone for M-Pesa prompt.')
+        toast.success(useEscrow ? 'Payment sent to escrow! Funds will be released after delivery.' : 'Payment request sent! Check your phone for M-Pesa prompt.')
         await clearCart()
         router.push('/orders')
       } else {
@@ -105,9 +143,18 @@ export default function CheckoutPage() {
     }
   }
 
-  if (!session) {
-    return null
+  if (!session || isLoadingCart) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-emerald-500 mx-auto mb-4"></div>
+          <p className="text-muted-foreground">Loading your cart...</p>
+        </div>
+      </div>
+    )
   }
+
+  console.log('Rendering checkout with cart:', cart)
 
   if (cart.length === 0) {
     return (
@@ -128,84 +175,139 @@ export default function CheckoutPage() {
     )
   }
 
+  const steps = [
+    { number: 1, title: 'Review Cart', icon: ShoppingCart },
+    { number: 2, title: 'Payment Details', icon: CreditCard },
+    { number: 3, title: 'Confirm & Pay', icon: CheckCircle }
+  ]
+
+  const getStepStatus = (stepNumber: number) => {
+    if (stepNumber < currentStep) return 'completed'
+    if (stepNumber === currentStep) return 'active'
+    return 'pending'
+  }
+
   return (
     <div className="min-h-screen bg-background py-8">
       <div className="max-w-7xl mx-auto px-4">
-        <div className="mb-6">
+        <div className="mb-8">
           <Button variant="ghost" onClick={() => router.back()} className="mb-4">
             <ArrowLeft className="w-4 h-4 mr-2" />
             Back
           </Button>
-          <h1 className="text-3xl font-bold">Checkout</h1>
-          <p className="text-muted-foreground mt-2">{cart.length} item(s) in cart</p>
+          <h1 className="text-3xl font-bold mb-6">Checkout</h1>
+          
+          {/* Progress Steps */}
+          <div className="flex items-center justify-between max-w-3xl mx-auto mb-8">
+            {steps.map((step, index) => {
+              const status = getStepStatus(step.number)
+              const StepIcon = step.icon
+              return (
+                <div key={step.number} className="flex items-center flex-1">
+                  <div className="flex flex-col items-center flex-1">
+                    <div className={`w-12 h-12 rounded-full flex items-center justify-center font-bold transition-all ${
+                      status === 'active' 
+                        ? 'bg-emerald-600 text-white ring-4 ring-emerald-200' 
+                        : status === 'completed'
+                        ? 'bg-green-500 text-white'
+                        : 'bg-gray-200 text-gray-500'
+                    }`}>
+                      {status === 'completed' ? (
+                        <CheckCircle className="w-6 h-6" />
+                      ) : (
+                        <StepIcon className="w-6 h-6" />
+                      )}
+                    </div>
+                    <span className={`text-sm mt-2 font-medium text-center ${
+                      status === 'active' ? 'text-emerald-600' : status === 'completed' ? 'text-green-600' : 'text-gray-500'
+                    }`}>
+                      {step.title}
+                    </span>
+                  </div>
+                  {index < steps.length - 1 && (
+                    <div className={`h-1 flex-1 mx-4 rounded transition-all ${
+                      status === 'completed' ? 'bg-green-500' : 'bg-gray-200'
+                    }`} />
+                  )}
+                </div>
+              )
+            })}
+          </div>
         </div>
 
         <div className="grid lg:grid-cols-3 gap-6">
-          <div className="lg:col-span-2 space-y-4">
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <ShoppingCart className="w-5 h-5" />
-                  Cart Items ({cart.length})
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                {cart.map((item) => (
-                  <div key={item.id} className="flex gap-4 p-4 border rounded-lg">
-                    <div className="w-20 h-20 bg-gray-100 rounded flex-shrink-0">
-                      {item.thumbnail ? (
-                        <Image src={item.thumbnail} alt={item.title} width={80} height={80} className="w-full h-full object-cover rounded" />
-                      ) : (
-                        <Package className="w-full h-full p-4 text-gray-400" />
-                      )}
-                    </div>
-                    <div className="flex-1">
-                      <h3 className="font-semibold">{item.title}</h3>
-                      <p className="text-sm text-muted-foreground">{item.category || 'Digital Product'}</p>
-                      <p className="text-lg font-bold mt-1">KES {item.price.toLocaleString()}</p>
-                    </div>
-                    <div className="flex flex-col items-end gap-2">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => handleRemove(item.id)}
-                        className="text-destructive"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </Button>
-                      <div className="flex items-center gap-2 border rounded">
+          {currentStep === 1 && (
+            <div className="lg:col-span-2 space-y-4">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <ShoppingCart className="w-5 h-5" />
+                    Review Your Cart ({cart.length} items)
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  {cart.map((item) => (
+                    <div key={item.id} className="flex gap-4 p-4 border rounded-lg hover:border-emerald-500 transition-colors">
+                      <div className="w-20 h-20 bg-gray-100 rounded flex-shrink-0">
+                        {item.thumbnail ? (
+                          <Image src={item.thumbnail} alt={item.title} width={80} height={80} className="w-full h-full object-cover rounded" />
+                        ) : (
+                          <Package className="w-full h-full p-4 text-gray-400" />
+                        )}
+                      </div>
+                      <div className="flex-1">
+                        <h3 className="font-semibold">{item.title}</h3>
+                        <p className="text-sm text-muted-foreground">{item.category || 'Digital Product'}</p>
+                        <p className="text-lg font-bold mt-1 text-emerald-600">KES {item.price.toLocaleString()}</p>
+                      </div>
+                      <div className="flex flex-col items-end gap-2">
                         <Button
                           variant="ghost"
                           size="sm"
-                          onClick={() => handleQuantityChange(item.id, item.quantity - 1)}
-                          disabled={item.quantity <= 1}
+                          onClick={() => handleRemove(item.id)}
+                          className="text-destructive"
                         >
-                          <Minus className="w-3 h-3" />
+                          <Trash2 className="w-4 h-4" />
                         </Button>
-                        <span className="w-8 text-center">{item.quantity}</span>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => handleQuantityChange(item.id, item.quantity + 1)}
-                        >
-                          <Plus className="w-3 h-3" />
-                        </Button>
+                        <div className="flex items-center gap-2 border rounded">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleQuantityChange(item.id, item.quantity - 1)}
+                            disabled={item.quantity <= 1}
+                          >
+                            <Minus className="w-3 h-3" />
+                          </Button>
+                          <span className="w-8 text-center font-medium">{item.quantity}</span>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleQuantityChange(item.id, item.quantity + 1)}
+                          >
+                            <Plus className="w-3 h-3" />
+                          </Button>
+                        </div>
                       </div>
                     </div>
-                  </div>
-                ))}
-              </CardContent>
-            </Card>
+                  ))}
+                  <Button onClick={() => setCurrentStep(2)} className="w-full" size="lg">
+                    Continue to Payment
+                  </Button>
+                </CardContent>
+              </Card>
+            </div>
+          )}
 
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <CreditCard className="w-5 h-5" />
-                  Payment Information
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <form onSubmit={handleCheckout} className="space-y-4">
+          {currentStep === 2 && (
+            <div className="lg:col-span-2 space-y-4">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <CreditCard className="w-5 h-5" />
+                    Payment Information
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
                   <div>
                     <Label htmlFor="phone">M-Pesa Phone Number *</Label>
                     <div className="relative mt-1">
@@ -243,28 +345,97 @@ export default function CheckoutPage() {
                     />
                   </div>
 
-                  <Button
-                    type="submit"
-                    disabled={!phoneValid || loading}
-                    className="w-full"
-                    size="lg"
-                  >
-                    {loading ? (
-                      <div className="flex items-center gap-2">
-                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white" />
-                        Processing...
+                  <div className="flex items-start gap-3 p-4 border rounded-lg bg-emerald-50">
+                    <input
+                      type="checkbox"
+                      id="escrow"
+                      checked={useEscrow}
+                      onChange={(e) => setUseEscrow(e.target.checked)}
+                      className="mt-1"
+                    />
+                    <div className="flex-1">
+                      <Label htmlFor="escrow" className="cursor-pointer font-semibold">
+                        Use Escrow Protection
+                      </Label>
+                      <p className="text-sm text-muted-foreground mt-1">
+                        Your payment will be held securely until you confirm delivery. Adds extra protection for your purchase.
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="flex gap-3">
+                    <Button variant="outline" onClick={() => setCurrentStep(1)} className="flex-1">
+                      Back to Cart
+                    </Button>
+                    <Button onClick={() => setCurrentStep(3)} disabled={!phoneValid} className="flex-1">
+                      Review Order
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+          )}
+
+          {currentStep === 3 && (
+            <div className="lg:col-span-2 space-y-4">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <CheckCircle className="w-5 h-5" />
+                    Confirm Your Order
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-6">
+                  <div className="space-y-3">
+                    <h3 className="font-semibold">Order Summary</h3>
+                    {cart.map((item) => (
+                      <div key={item.id} className="flex justify-between text-sm">
+                        <span>{item.title} x {item.quantity}</span>
+                        <span className="font-medium">KES {(item.price * item.quantity).toLocaleString()}</span>
                       </div>
-                    ) : (
-                      <div className="flex items-center gap-2">
-                        <CreditCard className="w-4 h-4" />
-                        Pay KES {total.toLocaleString()}
+                    ))}
+                  </div>
+
+                  <div className="border-t pt-3 space-y-2">
+                    <div className="flex justify-between">
+                      <span className="font-semibold">Payment Method:</span>
+                      <span>M-Pesa ({phoneNumber})</span>
+                    </div>
+                    {useEscrow && (
+                      <div className="flex items-center gap-2 text-sm text-emerald-600">
+                        <CheckCircle className="w-4 h-4" />
+                        <span>Escrow Protection Enabled</span>
                       </div>
                     )}
-                  </Button>
-                </form>
-              </CardContent>
-            </Card>
-          </div>
+                  </div>
+
+                  <form onSubmit={handleCheckout} className="space-y-4">
+                    <Button
+                      type="submit"
+                      disabled={loading}
+                      className="w-full bg-emerald-600 hover:bg-emerald-700"
+                      size="lg"
+                    >
+                      {loading ? (
+                        <div className="flex items-center gap-2">
+                          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white" />
+                          Processing Payment...
+                        </div>
+                      ) : (
+                        <div className="flex items-center gap-2">
+                          <CreditCard className="w-4 h-4" />
+                          Pay KES {total.toLocaleString()} via M-Pesa
+                        </div>
+                      )}
+                    </Button>
+                    <Button type="button" variant="outline" onClick={() => setCurrentStep(2)} className="w-full">
+                      Back to Payment Details
+                    </Button>
+                  </form>
+                </CardContent>
+              </Card>
+            </div>
+          )}
 
           <div>
             <Card className="sticky top-4">
@@ -292,6 +463,12 @@ export default function CheckoutPage() {
                     <CheckCircle className="w-4 h-4 text-green-500" />
                     <span>Secure M-Pesa payment</span>
                   </div>
+                  {useEscrow && (
+                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                      <CheckCircle className="w-4 h-4 text-green-500" />
+                      <span>Escrow protection enabled</span>
+                    </div>
+                  )}
                   <div className="flex items-center gap-2 text-sm text-muted-foreground">
                     <CheckCircle className="w-4 h-4 text-green-500" />
                     <span>Instant order confirmation</span>

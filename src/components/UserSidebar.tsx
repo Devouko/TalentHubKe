@@ -2,7 +2,7 @@
 
 import { useSession } from 'next-auth/react'
 import Link from 'next/link'
-import { Briefcase, FileText, Eye, UserPlus, Store, X, Menu } from 'lucide-react'
+import { Briefcase, FileText, Eye, UserPlus, Store, X, Menu, ShoppingBag } from 'lucide-react'
 import { useState } from 'react'
 
 export function UserSidebar() {
@@ -33,6 +33,11 @@ export function UserSidebar() {
           </div>
           
           <nav className="space-y-2">
+            <Link href="/dashboard" className="flex items-center gap-3 p-3 rounded-lg hover:bg-gray-800 text-gray-300 hover:text-white">
+              <ShoppingBag className="w-5 h-5" />
+              <span className={`${sidebarOpen || window.innerWidth >= 1024 ? 'block' : 'hidden'} lg:block`}>Shop</span>
+            </Link>
+            
             <Link href="/gigs" className="flex items-center gap-3 p-3 rounded-lg hover:bg-gray-800 text-gray-300 hover:text-white">
               <Briefcase className="w-5 h-5" />
               <span className={`${sidebarOpen || window.innerWidth >= 1024 ? 'block' : 'hidden'} lg:block`}>Browse Gigs</span>

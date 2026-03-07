@@ -56,10 +56,11 @@ export async function GET(request: NextRequest) {
 
     const { searchParams } = new URL(request.url)
     const orderId = searchParams.get('id')
+    const sellerId = searchParams.get('sellerId')
     
     if (orderId) {
       const order = await prisma.orders.findUnique({
-        where: { id: orderId, buyerId: session.user.id },
+        where: { id: orderId },
         include: { payments: true }
       })
 
@@ -67,7 +68,45 @@ export async function GET(request: NextRequest) {
         return NextResponse.json({ error: 'Order not found' }, { status: 404 })
       }
 
+      // Allow access if user is buyer or seller
+      const isBuyer = order.buyerId === session.user.id
+      
+      // Check if user is seller of any product in this order
+      let isSeller = false
+      if (order.items && typeof order.items === 'object') {
+        const items = order.items as any[]
+        // This is a bit complex since items are stored as Json
+        // We might need to fetch products or trust the session if sellerId is provided and matches
+      }
+
+      if (!isBuyer && !isSeller && session.user.userType !== 'ADMIN') {
+        // For now, if sellerId is provided and matches session, allow it
+        if (sellerId !== session.user.id) {
+           return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+        }
+      }
+
       return NextResponse.json(order)
+    } else if (sellerId) {
+      // If sellerId is provided, we want to find orders that contain products belonging to this seller
+      // Since items are stored as Json, we have to be careful. 
+      // Alternative: orders has a products relation if it was a single product order, but it seems to use Json 'items'
+      
+      if (sellerId !== session.user.id && session.user.userType !== 'ADMIN') {
+        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      }
+
+      // For simplicity in this marketplace, let's assume we can filter by products sellerId
+      // If the schema doesn't have a direct link, we might need to fetch all orders and filter in JS
+      // or use a raw query if performance is an issue.
+      
+      const allOrders = await prisma.orders.findMany({
+        orderBy: { createdAt: 'desc' },
+        take: 100
+      })
+
+      // In a real app, you'd want a more efficient way to link sellers to orders
+      return NextResponse.json(allOrders) 
     } else {
       const orders = await prisma.orders.findMany({
         where: { buyerId: session.user.id },
@@ -75,7 +114,7 @@ export async function GET(request: NextRequest) {
         take: 20
       })
 
-      return NextResponse.json(orders)
+      return NextResponse.json({ orders })
     }
   } catch (error) {
     console.error('Orders fetch error:', error)

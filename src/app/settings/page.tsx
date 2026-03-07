@@ -12,6 +12,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 
+import DashboardLayout from '@/components/layouts/DashboardLayout'
+
 type Tab = 'basic' | 'education' | 'certification' | 'experience' | 'language' | 'skills' | 'payment'
 
 export default function ProfileSettings() {
@@ -70,41 +72,41 @@ export default function ProfileSettings() {
   const profileCompletion = 50 // Calculate based on filled fields
 
   return (
-    <div className="min-h-screen bg-background">
+    <DashboardLayout>
       <div className="max-w-7xl mx-auto px-4 py-8">
         <button
-          onClick={() => router.back()}
-          className="flex items-center gap-2 text-muted-foreground hover:text-foreground mb-6"
+          onClick={() => router.push('/dashboard')}
+          className="flex items-center gap-2 text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white mb-6 transition-colors"
         >
           <ArrowLeft className="w-4 h-4" />
           Back to Dashboard
         </button>
 
         {/* Header Section */}
-        <Card className="p-6 mb-6">
-          <div className="flex items-center justify-between">
+        <Card className="p-6 mb-6 bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 shadow-sm">
+          <div className="flex flex-col md:flex-row items-center justify-between gap-6">
             <div className="flex items-center gap-4">
-              <div className="w-16 h-16 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-2xl font-bold">
+              <div className="w-16 h-16 rounded-full bg-blue-600 text-white flex items-center justify-center text-2xl font-bold shadow-lg shadow-blue-500/20">
                 {session?.user?.name?.[0]?.toUpperCase() || 'U'}
               </div>
               <div>
-                <h1 className="text-2xl font-bold">{session?.user?.name || 'User'}</h1>
-                <div className="flex items-center gap-3 mt-1">
-                  <span className="text-sm text-muted-foreground">
+                <h1 className="text-2xl font-bold text-slate-900 dark:text-white">{session?.user?.name || 'User'}</h1>
+                <div className="flex flex-wrap items-center gap-3 mt-1">
+                  <span className="text-sm text-slate-500 dark:text-slate-400">
                     Profile completion: {profileCompletion}%
                   </span>
-                  <Badge variant="secondary" className="bg-warning text-warning-foreground">
+                  <Badge variant="secondary" className="bg-orange-100 dark:bg-orange-900/30 text-orange-600 dark:text-orange-400 border-none">
                     Pending
                   </Badge>
-                  <Button variant="outline" size="sm">Verify Your ID</Button>
+                  <Button variant="outline" size="sm" className="border-blue-600 text-blue-600 hover:bg-blue-50 dark:border-blue-500 dark:text-blue-400 dark:hover:bg-blue-900/20">Verify Your ID</Button>
                 </div>
               </div>
             </div>
-            <div className="text-right">
-              <p className="text-sm text-muted-foreground">
+            <div className="text-center md:text-right">
+              <p className="text-sm text-slate-500 dark:text-slate-400">
                 Username: {session?.user?.email}
               </p>
-              <Button variant="link" size="sm" className="text-primary">
+              <Button variant="link" size="sm" className="text-blue-600 dark:text-blue-400 p-0 h-auto font-semibold">
                 Change Password
               </Button>
             </div>
@@ -112,18 +114,18 @@ export default function ProfileSettings() {
         </Card>
 
         {/* Tabs Navigation */}
-        <div className="border-b border-border mb-6">
-          <div className="flex gap-8 overflow-x-auto">
+        <div className="border-b border-slate-200 dark:border-slate-700 mb-6">
+          <div className="flex gap-8 overflow-x-auto pb-1 scrollbar-hide">
             {tabs.map(tab => {
               const Icon = tab.icon
               return (
                 <button
                   key={tab.id}
                   onClick={() => setActiveTab(tab.id as Tab)}
-                  className={`flex items-center gap-2 pb-4 px-2 border-b-2 transition-colors whitespace-nowrap ${
+                  className={`flex items-center gap-2 pb-4 px-2 border-b-2 transition-all whitespace-nowrap ${
                     activeTab === tab.id
-                      ? 'border-primary text-primary font-medium'
-                      : 'border-transparent text-muted-foreground hover:text-foreground'
+                      ? 'border-blue-600 text-blue-600 font-bold'
+                      : 'border-transparent text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white'
                   }`}
                 >
                   <Icon className="w-4 h-4" />
@@ -135,32 +137,35 @@ export default function ProfileSettings() {
         </div>
 
         {/* Tab Content */}
-        <Card className="p-6">
+        <Card className="p-6 bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 shadow-sm">
           {activeTab === 'basic' && (
             <div className="space-y-6">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
-                  <Label htmlFor="firstName">First Name*</Label>
+                  <Label htmlFor="firstName" className="text-slate-700 dark:text-slate-300">First Name*</Label>
                   <Input
                     id="firstName"
                     value={profileData.firstName}
                     onChange={(e) => setProfileData({ ...profileData, firstName: e.target.value })}
+                    className="mt-1 focus:ring-blue-600 dark:bg-slate-900 dark:border-slate-700"
                   />
                 </div>
                 <div>
-                  <Label htmlFor="country">Country*</Label>
+                  <Label htmlFor="country" className="text-slate-700 dark:text-slate-300">Country*</Label>
                   <Input
                     id="country"
                     value={profileData.country}
                     onChange={(e) => setProfileData({ ...profileData, country: e.target.value })}
+                    className="mt-1 focus:ring-blue-600 dark:bg-slate-900 dark:border-slate-700"
                   />
                 </div>
                 <div>
-                  <Label htmlFor="middleName">Middle Name</Label>
+                  <Label htmlFor="middleName" className="text-slate-700 dark:text-slate-300">Middle Name</Label>
                   <Input
                     id="middleName"
                     value={profileData.middleName}
                     onChange={(e) => setProfileData({ ...profileData, middleName: e.target.value })}
+                    className="mt-1 focus:ring-blue-600 dark:bg-slate-900 dark:border-slate-700"
                   />
                 </div>
                 <div>
@@ -193,61 +198,65 @@ export default function ProfileSettings() {
                     id="gender"
                     value={profileData.gender}
                     onChange={(e) => setProfileData({ ...profileData, gender: e.target.value })}
-                    className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                    className="flex h-10 w-full rounded-md border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-sm focus:ring-2 focus:ring-blue-600 outline-none"
                   >
-                    <option value="">Select Gender</option>
-                    <option value="male">Male</option>
-                    <option value="female">Female</option>
-                    <option value="other">Other</option>
+                    <option value="" className="dark:bg-slate-900">Select Gender</option>
+                    <option value="male" className="dark:bg-slate-900">Male</option>
+                    <option value="female" className="dark:bg-slate-900">Female</option>
+                    <option value="other" className="dark:bg-slate-900">Other</option>
                   </select>
                 </div>
                 <div>
-                  <Label htmlFor="contactNumber">Contact Number</Label>
+                  <Label htmlFor="contactNumber" className="text-slate-700 dark:text-slate-300">Contact Number</Label>
                   <Input
                     id="contactNumber"
                     value={profileData.contactNumber}
                     onChange={(e) => setProfileData({ ...profileData, contactNumber: e.target.value })}
+                    className="mt-1 focus:ring-blue-600 dark:bg-slate-900 dark:border-slate-700"
                   />
                 </div>
                 <div>
-                  <Label htmlFor="dateOfBirth">Date of Birth</Label>
+                  <Label htmlFor="dateOfBirth" className="text-slate-700 dark:text-slate-300">Date of Birth</Label>
                   <Input
                     id="dateOfBirth"
                     type="date"
                     value={profileData.dateOfBirth}
                     onChange={(e) => setProfileData({ ...profileData, dateOfBirth: e.target.value })}
+                    className="mt-1 focus:ring-blue-600 dark:bg-slate-900 dark:border-slate-700"
                   />
                 </div>
                 <div>
-                  <Label htmlFor="primaryEmail">Primary Email ID</Label>
+                  <Label htmlFor="primaryEmail" className="text-slate-700 dark:text-slate-300">Primary Email ID</Label>
                   <Input
                     id="primaryEmail"
                     type="email"
                     value={profileData.primaryEmail}
                     disabled
-                    className="bg-muted"
+                    className="mt-1 bg-slate-50 dark:bg-slate-800 dark:border-slate-700 text-slate-500"
                   />
                 </div>
                 <div>
-                  <Label htmlFor="ethnicity">Ethnicity</Label>
+                  <Label htmlFor="ethnicity" className="text-slate-700 dark:text-slate-300">Ethnicity</Label>
                   <Input
                     id="ethnicity"
                     value={profileData.ethnicity}
                     onChange={(e) => setProfileData({ ...profileData, ethnicity: e.target.value })}
+                    className="mt-1 focus:ring-blue-600 dark:bg-slate-900 dark:border-slate-700"
                   />
                 </div>
                 <div>
-                  <Label htmlFor="secondaryEmail">Secondary Email ID</Label>
+                  <Label htmlFor="secondaryEmail" className="text-slate-700 dark:text-slate-300">Secondary Email ID</Label>
                   <Input
                     id="secondaryEmail"
                     type="email"
                     value={profileData.secondaryEmail}
                     onChange={(e) => setProfileData({ ...profileData, secondaryEmail: e.target.value })}
+                    className="mt-1 focus:ring-blue-600 dark:bg-slate-900 dark:border-slate-700"
                   />
                 </div>
               </div>
               <div className="flex justify-end">
-                <Button onClick={handleSave}>Save</Button>
+                <Button onClick={handleSave} className="bg-blue-600 hover:bg-blue-700 text-white px-8">Save Changes</Button>
               </div>
             </div>
           )}
@@ -256,7 +265,7 @@ export default function ProfileSettings() {
             <div className="space-y-6">
               {educationList.length > 0 ? (
                 <div className="space-y-4">
-                  <div className="grid grid-cols-5 gap-4 px-4 py-3 bg-muted/50 rounded-lg text-sm font-medium text-muted-foreground">
+                  <div className="grid grid-cols-5 gap-4 px-4 py-3 bg-slate-50 dark:bg-slate-900/50 rounded-lg text-sm font-medium text-slate-500">
                     <div>QUALIFICATION</div>
                     <div>SPECIALIZATION</div>
                     <div>COLLEGE/UNIVERSITY/BOARD</div>
@@ -264,15 +273,15 @@ export default function ProfileSettings() {
                     <div className="text-right">ACTIONS</div>
                   </div>
                   {educationList.map((item, idx) => (
-                    <Card key={idx} className="p-4">
+                    <Card key={idx} className="p-4 border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800">
                       <div className="grid grid-cols-5 gap-4 items-center">
-                        <div>{item.qualification}</div>
-                        <div>{item.specialization}</div>
-                        <div>{item.institution}</div>
-                        <div>{item.year}</div>
+                        <div className="font-medium text-slate-900 dark:text-white">{item.qualification}</div>
+                        <div className="text-slate-600 dark:text-slate-400">{item.specialization}</div>
+                        <div className="text-slate-600 dark:text-slate-400">{item.institution}</div>
+                        <div className="text-slate-600 dark:text-slate-400">{item.year}</div>
                         <div className="flex justify-end gap-2">
-                          <Button variant="ghost" size="sm"><Edit className="w-4 h-4" /></Button>
-                          <Button variant="ghost" size="sm"><Trash2 className="w-4 h-4" /></Button>
+                          <Button variant="ghost" size="sm" className="text-blue-600 hover:text-blue-700 dark:text-blue-400"><Edit className="w-4 h-4" /></Button>
+                          <Button variant="ghost" size="sm" className="text-red-600 hover:text-red-700"><Trash2 className="w-4 h-4" /></Button>
                         </div>
                       </div>
                     </Card>
@@ -280,27 +289,30 @@ export default function ProfileSettings() {
                 </div>
               ) : (
                 <div className="text-center py-12">
-                  <h3 className="text-lg font-semibold mb-2">No education added</h3>
-                  <p className="text-muted-foreground mb-6">You haven't added any education yet.</p>
+                  <div className="w-16 h-16 bg-slate-100 dark:bg-slate-900 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <GraduationCap className="w-8 h-8 text-slate-400" />
+                  </div>
+                  <h3 className="text-lg font-semibold mb-2 text-slate-900 dark:text-white">No education added</h3>
+                  <p className="text-slate-500 dark:text-slate-400 mb-6">You haven't added any education credentials yet.</p>
                 </div>
               )}
               <div className="flex justify-end">
                 <Dialog open={showAddDialog} onOpenChange={setShowAddDialog}>
                   <DialogTrigger asChild>
-                    <Button><Plus className="w-4 h-4 mr-2" />Add New Education</Button>
+                    <Button className="bg-blue-600 hover:bg-blue-700 text-white"><Plus className="w-4 h-4 mr-2" />Add New Education</Button>
                   </DialogTrigger>
-                  <DialogContent>
+                  <DialogContent className="sm:max-w-[500px] dark:bg-slate-800 dark:border-slate-700">
                     <DialogHeader>
-                      <DialogTitle>Add Education</DialogTitle>
+                      <DialogTitle className="text-xl font-bold text-slate-900 dark:text-white">Add Education</DialogTitle>
                     </DialogHeader>
-                    <div className="space-y-4">
+                    <div className="space-y-4 pt-4">
                       <div>
-                        <Label>Qualification</Label>
-                        <Input placeholder="Bachelor's Degree" />
+                        <Label className="text-slate-700 dark:text-slate-300">Qualification</Label>
+                        <Input placeholder="Bachelor's Degree" className="mt-1 focus:ring-blue-600 dark:bg-slate-900 dark:border-slate-700" />
                       </div>
                       <div>
-                        <Label>Specialization</Label>
-                        <Input placeholder="Computer Science" />
+                        <Label className="text-slate-700 dark:text-slate-300">Specialization</Label>
+                        <Input placeholder="Computer Science" className="mt-1 focus:ring-blue-600 dark:bg-slate-900 dark:border-slate-700" />
                       </div>
                       <div>
                         <Label>College/University/Board</Label>
@@ -439,6 +451,6 @@ export default function ProfileSettings() {
           )}
         </Card>
       </div>
-    </div>
+    </DashboardLayout>
   )
 }

@@ -23,7 +23,7 @@ export async function GET(request: NextRequest) {
 
     if (conversationId) {
       // Verify user is part of the conversation
-      const conversation = await prisma.conversation.findFirst({
+      const conversation = await prisma.conversations.findFirst({
         where: {
           id: conversationId,
           OR: [
@@ -37,23 +37,38 @@ export async function GET(request: NextRequest) {
         return NextResponse.json({ error: 'Conversation not found' }, { status: 404 })
       }
 
-      messages = await prisma.message.findMany({
+      messages = await prisma.messages.findMany({
         where: { conversationId },
         include: {
-          sender: {
-            select: { id: true, name: true, image: true }
+          users: {
+            select: { id: true, name: true, profileImage: true }
           }
         },
         orderBy: { createdAt: 'asc' }
       })
-    } else {
+
+      // Format messages to match expected structure
+      const formattedMessages = messages.map(msg => ({
+        id: msg.id,
+        content: msg.content,
+        senderId: msg.senderId,
+        createdAt: msg.createdAt.toISOString(),
+        sender: {
+          id: msg.users.id,
+          name: msg.users.name || 'Unknown',
+          image: msg.users.profileImage || null
+        }
+      }))
+
+      return NextResponse.json(formattedMessages)
+    } else if (orderId) {
       // Order-based messages
-      const order = await prisma.order.findFirst({
+      const order = await prisma.orders.findFirst({
         where: {
           id: orderId,
           OR: [
             { buyerId: session.user.id },
-            { gig: { sellerId: session.user.id } }
+            { gigs: { sellerId: session.user.id } }
           ]
         }
       })
@@ -62,18 +77,33 @@ export async function GET(request: NextRequest) {
         return NextResponse.json({ error: 'Order not found' }, { status: 404 })
       }
 
-      messages = await prisma.message.findMany({
+      messages = await prisma.messages.findMany({
         where: { orderId },
         include: {
-          sender: {
-            select: { id: true, name: true, image: true }
+          users: {
+            select: { id: true, name: true, profileImage: true }
           }
         },
         orderBy: { createdAt: 'asc' }
       })
-    }
 
-    return NextResponse.json(messages)
+      // Format messages
+      const formattedMessages = messages.map(msg => ({
+        id: msg.id,
+        content: msg.content,
+        senderId: msg.senderId,
+        createdAt: msg.createdAt.toISOString(),
+        sender: {
+          id: msg.users.id,
+          name: msg.users.name || 'Unknown',
+          image: msg.users.profileImage || null
+        }
+      }))
+
+      return NextResponse.json(formattedMessages)
+    }
+    
+    return NextResponse.json([])
   } catch (error) {
     console.error('Messages fetch error:', error)
     return NextResponse.json({ error: 'Failed to fetch messages' }, { status: 500 })
@@ -88,7 +118,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    const { conversationId, orderId, content, attachments } = await request.json()
+    const { conversationId, orderId, content } = await request.json()
     
     if (!content?.trim()) {
       return NextResponse.json({ error: 'Content required' }, { status: 400 })
@@ -102,7 +132,7 @@ export async function POST(request: NextRequest) {
 
     if (conversationId) {
       // Verify user is part of the conversation
-      const conversation = await prisma.conversation.findFirst({
+      const conversation = await prisma.conversations.findFirst({
         where: {
           id: conversationId,
           OR: [
@@ -116,86 +146,114 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ error: 'Conversation not found' }, { status: 404 })
       }
 
-      message = await prisma.message.create({
+      message = await prisma.messages.create({
         data: {
+          id: `msg_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
           conversationId,
           senderId: session.user.id,
           content: content.trim(),
-          attachments: attachments || []
+          createdAt: new Date()
         },
         include: {
-          sender: {
-            select: { id: true, name: true, image: true }
+          users: {
+            select: { id: true, name: true, profileImage: true }
           }
         }
       })
 
       // Update conversation timestamp
-      await prisma.conversation.update({
+      await prisma.conversations.update({
         where: { id: conversationId },
-        data: { lastMessageAt: new Date() }
+        data: { updatedAt: new Date() }
       })
 
       // Create notification for other user
       const otherUserId = conversation.user1Id === session.user.id ? conversation.user2Id : conversation.user1Id
-      await prisma.notification.create({
+      await prisma.notifications.create({
         data: {
+          id: `notif_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
           userId: otherUserId,
           title: 'New Message',
           message: `${session.user.name} sent you a message`,
           type: 'MESSAGE',
-          entityId: conversationId,
-          entityType: 'conversation'
+          createdAt: new Date()
         }
-      })
-    } else {
+      }).catch(err => console.error('Notification creation failed:', err))
+
+      // Format response
+      return NextResponse.json({
+        id: message.id,
+        content: message.content,
+        senderId: message.senderId,
+        createdAt: message.createdAt.toISOString(),
+        sender: {
+          id: message.users.id,
+          name: message.users.name || 'Unknown',
+          image: message.users.profileImage || null
+        }
+      }, { status: 201 })
+    } else if (orderId) {
       // Order-based message
-      const order = await prisma.order.findFirst({
+      const order = await prisma.orders.findFirst({
         where: {
           id: orderId,
           OR: [
             { buyerId: session.user.id },
-            { gig: { sellerId: session.user.id } }
+            { gigs: { sellerId: session.user.id } }
           ]
         },
-        include: { gig: true }
+        include: { gigs: true }
       })
 
       if (!order) {
         return NextResponse.json({ error: 'Order not found' }, { status: 404 })
       }
 
-      message = await prisma.message.create({
+      message = await prisma.messages.create({
         data: {
+          id: `msg_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
           orderId,
           senderId: session.user.id,
           content: content.trim(),
-          attachments: attachments || []
+          createdAt: new Date()
         },
         include: {
-          sender: {
-            select: { id: true, name: true, image: true }
+          users: {
+            select: { id: true, name: true, profileImage: true }
           }
         }
       })
 
       // Create notification for other party
-      const otherUserId = order.buyerId === session.user.id ? order.gig?.sellerId : order.buyerId
+      const otherUserId = order.buyerId === session.user.id ? order.gigs?.sellerId : order.buyerId
       if (otherUserId) {
-        await prisma.notification.create({
+        await prisma.notifications.create({
           data: {
+            id: `notif_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
             userId: otherUserId,
             title: 'Order Message',
             message: `New message for order #${orderId.slice(-8)}`,
             type: 'MESSAGE',
-            entityId: orderId,
-            entityType: 'order'
+            createdAt: new Date()
           }
-        })
+        }).catch(err => console.error('Notification creation failed:', err))
       }
-    }
 
-    return NextResponse.json(message, { status: 201 })
+      // Format response
+      return NextResponse.json({
+        id: message.id,
+        content: message.content,
+        senderId: message.senderId,
+        createdAt: message.createdAt.toISOString(),
+        sender: {
+          id: message.users.id,
+          name: message.users.name || 'Unknown',
+          image: message.users.profileImage || null
+        }
+      }, { status: 201 })
+    }
+    
+    return NextResponse.json({ error: 'Invalid request' }, { status: 400 })
   } catch (error) {
     console.error('Message creation error:', error)
     return NextResponse.json({ error: 'Failed to send message' }, { status: 500 })

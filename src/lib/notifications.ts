@@ -22,7 +22,7 @@ export async function createNotification({
   metadata
 }: CreateNotificationParams) {
   try {
-    return await prisma.notification.create({
+    return await prisma.notifications.create({
       data: {
         userId,
         title,
@@ -98,7 +98,7 @@ export async function createReviewNotification(
 
 export async function markNotificationsAsRead(userId: string, notificationIds: string[]) {
   try {
-    return await prisma.notification.updateMany({
+    return await prisma.notifications.updateMany({
       where: {
         id: { in: notificationIds },
         userId
@@ -113,7 +113,7 @@ export async function markNotificationsAsRead(userId: string, notificationIds: s
 
 export async function getUnreadNotificationCount(userId: string) {
   try {
-    return await prisma.notification.count({
+    return await prisma.notifications.count({
       where: {
         userId,
         isRead: false

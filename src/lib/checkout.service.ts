@@ -60,7 +60,7 @@ export class CheckoutService extends BaseService {
       const userId = data.userId || await this.getOrCreateUser(data.phoneNumber)
 
       return await prisma.$transaction(async (tx) => {
-        const order = await tx.order.create({
+        const order = await tx.orders.create({
           data: {
             id: orderId,
             status: 'PENDING',
@@ -74,7 +74,7 @@ export class CheckoutService extends BaseService {
           }
         })
 
-        const payment = await tx.payment.create({
+        const payment = await tx.payments.create({
           data: { id: paymentId, orderId, amount: data.total, phoneNumber: data.phoneNumber, status: 'PENDING' }
         })
 
@@ -163,7 +163,7 @@ export class CheckoutService extends BaseService {
   }
 
   private static async findPaymentByCheckoutRequestId(checkoutRequestId: string) {
-    return prisma.payment.findFirst({
+    return prisma.payments.findFirst({
       where: { checkoutRequestId }
     })
   }
@@ -174,11 +174,11 @@ export class CheckoutService extends BaseService {
     data: PaymentUpdateData
   ): Promise<void> {
     await prisma.$transaction([
-      prisma.payment.update({
+      prisma.payments.update({
         where: { id: payment.id },
         data: { status, ...data }
       }),
-      prisma.order.update({
+      prisma.orders.update({
         where: { id: payment.orderId },
         data: { status: this.STATUS_MAPPING[status] }
       })

@@ -89,21 +89,11 @@ export const authOptions: NextAuthOptions = {
       }
       return session
     },
-    async redirect({ url, baseUrl, token }) {
-      if (url === baseUrl || url === `${baseUrl}/` || url === `${baseUrl}/auth/signin`) {
-        if (token?.userType === 'ADMIN') {
-          return `${baseUrl}/admin`
-        }
-        if (token?.userType === 'FREELANCER' || token?.userType === 'AGENCY') {
-          return `${baseUrl}/seller-dashboard`
-        }
-        return `${baseUrl}/dashboard`
-      }
-      
+    async redirect({ url, baseUrl }) {
+      // Always return to the requested URL or dashboard
       if (url.startsWith('/')) return `${baseUrl}${url}`
       if (new URL(url).origin === baseUrl) return url
-      
-      return `${baseUrl}/dashboard`
+      return baseUrl
     }
   },
   pages: {

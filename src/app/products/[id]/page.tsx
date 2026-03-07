@@ -4,9 +4,8 @@ import { useState, useEffect } from 'react'
 import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
 import { ShoppingCart } from 'lucide-react'
-import { useCart } from '@/app/context/CartContext'
 import AddToCartButton from '@/components/AddToCartButton'
-import { ReviewSectionComplete } from '@/components/reviews'
+import ProductRating from '@/components/ProductRating'
 
 export default function ProductDetail({ params }: { params: { id: string } }) {
   const { data: session } = useSession()
@@ -33,7 +32,7 @@ export default function ProductDetail({ params }: { params: { id: string } }) {
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-500"></div>
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-emerald-500"></div>
       </div>
     )
   }
@@ -47,32 +46,36 @@ export default function ProductDetail({ params }: { params: { id: string } }) {
   }
 
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-slate-900">
-      <div className="max-w-7xl mx-auto px-4 py-8">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-12">
+    <div className="min-h-screen bg-white">
+      <div className="max-w-6xl mx-auto px-4 py-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
           <div>
-            {product.images?.[0] && (
+            {product.images?.[0] ? (
               <img
                 src={product.images[0]}
                 alt={product.title}
-                className="w-full rounded-lg"
+                className="w-full rounded-lg border"
               />
+            ) : (
+              <div className="w-full aspect-square bg-gray-100 rounded-lg flex items-center justify-center">
+                <ShoppingCart className="w-16 h-16 text-gray-400" />
+              </div>
             )}
           </div>
 
           <div>
-            <h1 className="text-3xl font-bold mb-4">{product.title}</h1>
-            <p className="text-slate-600 dark:text-slate-400 mb-6">{product.description}</p>
+            <h1 className="text-2xl font-semibold mb-3">{product.title}</h1>
+            <p className="text-sm text-gray-600 mb-4">{product.description}</p>
             
-            <div className="mb-6">
-              <span className="text-3xl font-bold text-purple-500">
-                KSh {product.price?.toLocaleString()}
+            <div className="mb-4">
+              <span className="text-2xl font-semibold text-emerald-600">
+                KES {product.price?.toLocaleString()}
               </span>
             </div>
 
-            <div className="mb-6">
-              <span className="text-sm text-slate-600">
-                {product.stock} available
+            <div className="mb-4">
+              <span className="text-sm text-gray-600">
+                {product.stock} in stock
               </span>
             </div>
 
@@ -88,11 +91,13 @@ export default function ProductDetail({ params }: { params: { id: string } }) {
           </div>
         </div>
 
-        <ReviewSectionComplete
-          type="product"
-          targetId={params.id}
-          canReview={!!session}
-        />
+        <div className="border-t pt-8">
+          <h2 className="text-lg font-semibold mb-4">Customer Reviews</h2>
+          <ProductRating
+            productId={params.id}
+            canReview={!!session}
+          />
+        </div>
       </div>
     </div>
   )

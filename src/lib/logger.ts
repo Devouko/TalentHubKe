@@ -39,6 +39,10 @@ class SimpleLogger {
     this.log('error', message, meta)
   }
 
+  warn(message: string, meta?: Record<string, any>) {
+    this.log('warn', message, meta)
+  }
+
   debug(message: string, meta?: Record<string, any>) {
     if (this.level === 'debug') {
       this.log('debug', message, meta)

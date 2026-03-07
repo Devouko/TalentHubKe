@@ -6,6 +6,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Settings, Plus, X } from 'lucide-react';
 import { toast } from 'sonner';
+import { AIQuestionGenerator } from './AIQuestionGenerator';
 
 interface InterviewCriteriaProps {
   gigId: string;
@@ -121,9 +122,19 @@ export default function InterviewCriteria({ gigId }: InterviewCriteriaProps) {
           <div>
             <div className="flex items-center justify-between mb-2">
               <Label>Interview Questions</Label>
-              <Button type="button" variant="outline" size="sm" onClick={() => addField('questions')}>
-                <Plus className="h-4 w-4" />
-              </Button>
+              <div className="flex gap-2">
+                <AIQuestionGenerator
+                  jobTitle="Freelancer"
+                  skills={criteria.skills.filter(s => s.trim())}
+                  category="General"
+                  onQuestionsGenerated={(questions) => {
+                    setCriteria(prev => ({ ...prev, questions }))
+                  }}
+                />
+                <Button type="button" variant="outline" size="sm" onClick={() => addField('questions')}>
+                  <Plus className="h-4 w-4" />
+                </Button>
+              </div>
             </div>
             {criteria.questions.map((question, index) => (
               <div key={index} className="flex gap-2 mb-2">

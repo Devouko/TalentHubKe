@@ -2,11 +2,12 @@
 
 import { useState, useEffect } from 'react'
 import { useParams, useRouter } from 'next/navigation'
+import { useSession } from 'next-auth/react'
 import { motion } from 'framer-motion'
-import { Star, Users, Award, MapPin, Mail, Phone, Globe, ArrowLeft, MessageCircle } from 'lucide-react'
+import { Star, Users, Award, MapPin, Mail, Phone, Globe, ArrowLeft, MessageCircle, Loader2 } from 'lucide-react'
 import Link from 'next/link'
 import { ReviewSectionComplete } from '@/components/reviews'
-import { useSession } from 'next-auth/react'
+import { toast } from 'sonner'
 
 export default function ProfilePage() {
   const params = useParams()
@@ -14,10 +15,43 @@ export default function ProfilePage() {
   const { data: session } = useSession()
   const [user, setUser] = useState(null)
   const [loading, setLoading] = useState(true)
+  const [hiring, setHiring] = useState(false)
 
   useEffect(() => {
     fetchUserProfile()
   }, [params.id])
+
+  const handleHire = async () => {
+    if (!session) {
+      router.push('/auth/signin')
+      return
+    }
+    
+    setHiring(true)
+    try {
+      const response = await fetch('/api/conversations', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId: user.id })
+      })
+      
+      const data = await response.json()
+      
+      if (response.ok) {
+        toast.success('Conversation started!', {
+          description: 'Redirecting to messages...'
+        })
+        router.push(`/messages?conversation=${data.conversationId}`)
+      } else {
+        toast.error(data.error || 'Failed to start conversation')
+      }
+    } catch (error) {
+      console.error('Error:', error)
+      toast.error('Failed to start conversation. Please try again.')
+    } finally {
+      setHiring(false)
+    }
+  }
 
   const fetchUserProfile = async () => {
     try {
@@ -44,10 +78,15 @@ export default function ProfilePage() {
   if (!user) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-100 dark:from-slate-950 dark:via-slate-900 dark:to-slate-800 flex items-center justify-center">
-        <div className="text-center">
-          <h1 className="text-2xl font-bold mb-4">User not found</h1>
-          <Link href="/dashboard" className="text-emerald-500 hover:text-emerald-600">
-            Back to Dashboard
+        <div className="text-center max-w-md mx-auto px-4">
+          <div className="w-20 h-20 bg-red-600/20 rounded-full flex items-center justify-center mx-auto mb-4">
+            <span className="text-4xl">⚠️</span>
+          </div>
+          <h1 className="text-2xl font-bold mb-2">User not found</h1>
+          <p className="text-gray-600 dark:text-gray-400 mb-6">The user you are looking for does not exist or has been removed.</p>
+          <Link href="/all-talent" className="inline-flex items-center gap-2 px-6 py-3 bg-emerald-500 hover:bg-emerald-600 text-white rounded-lg font-semibold transition-all">
+            <ArrowLeft className="w-4 h-4" />
+            Back to All Talent
           </Link>
         </div>
       </div>
@@ -98,13 +137,25 @@ export default function ProfilePage() {
               </div>
 
               <div className="flex gap-3 mb-6">
-                <Link
-                  href={`/hire/${user.id}`}
-                  className="px-6 py-3 bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl font-semibold transition-all shadow-lg shadow-emerald-500/30"
+                <button
+                  onClick={handleHire}
+                  disabled={hiring}
+                  className="px-6 py-3 bg-emerald-500 hover:bg-emerald-600 disabled:opacity-50 text-white rounded-xl font-semibold transition-all shadow-lg shadow-emerald-500/30 flex items-center gap-2"
                 >
-                  Hire Now
-                </Link>
-                <button className="px-6 py-3 bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 rounded-xl font-semibold transition-all flex items-center gap-2">
+                  {hiring ? (
+                    <>
+                      <Loader2 className="w-5 h-5 animate-spin" />
+                      Starting...
+                    </>
+                  ) : (
+                    'Hire Now'
+                  )}
+                </button>
+                <button 
+                  onClick={handleHire}
+                  disabled={hiring}
+                  className="px-6 py-3 bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 disabled:opacity-50 rounded-xl font-semibold transition-all flex items-center gap-2"
+                >
                   <MessageCircle className="w-5 h-5" />
                   Message
                 </button>

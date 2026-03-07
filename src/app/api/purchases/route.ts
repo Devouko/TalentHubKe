@@ -15,23 +15,13 @@ export async function GET(request: NextRequest) {
     const userId = searchParams.get('userId') || session.user.id
     
     // Fetch user's orders/purchases
-    const purchases = await prisma.order.findMany({
+    const purchases = await prisma.orders.findMany({
       where: { 
         buyerId: userId,
-        status: { in: ['COMPLETED', 'DELIVERED'] }
+        status: { in: ['COMPLETED', 'DELIVERED', 'PAID'] }
       },
-      include: {
-        gig: {
-          select: {
-            id: true,
-            title: true,
-            description: true,
-            price: true,
-            category: true
-          }
-        }
-      },
-      orderBy: { createdAt: 'desc' }
+      orderBy: { createdAt: 'desc' },
+      take: 50
     })
 
     return NextResponse.json(purchases)

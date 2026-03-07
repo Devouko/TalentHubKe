@@ -1,12 +1,22 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, Suspense } from 'react'
 import { useSession, signOut } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
-import { BarChart3, Users, ShoppingCart, DollarSign, TrendingUp, MessageCircle } from 'lucide-react'
+import { BarChart3, Users, ShoppingCart, DollarSign, TrendingUp, MessageCircle, Package } from 'lucide-react'
 import AdminSidebarLayout from './AdminSidebarLayout'
-import TradeCharts from '@/components/admin/TradeCharts'
-import RealtimeMessaging from '@/components/admin/RealtimeMessaging'
+import dynamic from 'next/dynamic'
+
+// Dynamically import components with error handling
+const TradeCharts = dynamic(() => import('@/components/admin/TradeCharts'), {
+  loading: () => <div className="bg-gray-800 rounded-xl p-6 h-64 animate-pulse" />,
+  ssr: false
+})
+
+const RealtimeMessaging = dynamic(() => import('@/components/admin/RealtimeMessaging'), {
+  loading: () => <div className="bg-gray-800 rounded-xl p-6 h-96 animate-pulse" />,
+  ssr: false
+})
 
 export default function AdminPage() {
   const { data: session, status } = useSession()
@@ -67,8 +77,8 @@ export default function AdminPage() {
   const getActivityColor = (type) => {
     switch (type) {
       case 'user': return 'bg-purple-600'
-      case 'order': return 'bg-green-600'
-      case 'gig': return 'bg-blue-600'
+      case 'order': return 'bg-blue-600'
+      case 'gig': return 'bg-orange-600'
       default: return 'bg-gray-600'
     }
   }
@@ -77,7 +87,7 @@ export default function AdminPage() {
     return (
       <AdminSidebarLayout>
         <div className="min-h-screen bg-black text-white flex items-center justify-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-500"></div>
+          <div className="animate-spin rounded-full h-12 w-12 border-4 border-slate-800 border-t-blue-600"></div>
         </div>
       </AdminSidebarLayout>
     )
@@ -99,76 +109,76 @@ export default function AdminPage() {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-            <div className="bg-gradient-to-r from-purple-600 to-pink-600 p-6 rounded-xl">
+            <div className="bg-gradient-to-br from-blue-600 to-indigo-700 p-6 rounded-2xl shadow-lg shadow-blue-500/20">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-purple-100">Total Users</p>
-                  <p className="text-2xl font-bold text-white">{stats?.totalUsers || 0}</p>
+                  <p className="text-blue-100 text-sm font-medium">Total Users</p>
+                  <p className="text-2xl font-black text-white mt-1">{stats?.totalUsers || 0}</p>
                 </div>
-                <Users className="w-8 h-8 text-purple-200" />
+                <Users className="w-8 h-8 text-blue-200/50" />
               </div>
             </div>
-            <div className="bg-gradient-to-r from-blue-600 to-cyan-600 p-6 rounded-xl">
+            <div className="bg-gradient-to-br from-blue-500 to-cyan-600 p-6 rounded-2xl shadow-lg shadow-blue-400/20">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-blue-100">Active Gigs</p>
-                  <p className="text-2xl font-bold text-white">{stats?.activeGigs || 0}</p>
+                  <p className="text-blue-100 text-sm font-medium">Active Gigs</p>
+                  <p className="text-2xl font-black text-white mt-1">{stats?.activeGigs || 0}</p>
                 </div>
-                <ShoppingCart className="w-8 h-8 text-blue-200" />
+                <ShoppingCart className="w-8 h-8 text-blue-200/50" />
               </div>
             </div>
-            <div className="bg-gradient-to-r from-green-600 to-emerald-600 p-6 rounded-xl">
+            <div className="bg-gradient-to-br from-orange-500 to-amber-600 p-6 rounded-2xl shadow-lg shadow-orange-500/20">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-green-100">Total Revenue</p>
-                  <p className="text-2xl font-bold text-white">KES {(stats?.totalRevenue || 0).toLocaleString()}</p>
+                  <p className="text-orange-100 text-sm font-medium">Total Revenue</p>
+                  <p className="text-2xl font-black text-white mt-1">KES {(stats?.totalRevenue || 0).toLocaleString()}</p>
                 </div>
-                <DollarSign className="w-8 h-8 text-green-200" />
+                <DollarSign className="w-8 h-8 text-orange-200/50" />
               </div>
             </div>
-            <div className="bg-gradient-to-r from-orange-600 to-red-600 p-6 rounded-xl">
+            <div className="bg-gradient-to-br from-slate-700 to-slate-900 p-6 rounded-2xl shadow-lg shadow-slate-900/20 border border-slate-700">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-orange-100">Total Orders</p>
-                  <p className="text-2xl font-bold text-white">{stats?.totalOrders || 0}</p>
+                  <p className="text-slate-300 text-sm font-medium">Total Orders</p>
+                  <p className="text-2xl font-black text-white mt-1">{stats?.totalOrders || 0}</p>
                 </div>
-                <TrendingUp className="w-8 h-8 text-orange-200" />
+                <TrendingUp className="w-8 h-8 text-slate-500/50" />
               </div>
             </div>
-            <div className="bg-gradient-to-r from-yellow-600 to-amber-600 p-6 rounded-xl">
+            <div className="bg-gradient-to-br from-indigo-600 to-purple-700 p-6 rounded-2xl shadow-lg shadow-indigo-500/20">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-yellow-100">Products</p>
-                  <p className="text-2xl font-bold text-white">{stats?.totalProducts || 0}</p>
+                  <p className="text-indigo-100 text-sm font-medium">Products</p>
+                  <p className="text-2xl font-black text-white mt-1">{stats?.totalProducts || 0}</p>
                 </div>
-                <ShoppingCart className="w-8 h-8 text-yellow-200" />
+                <Package className="w-8 h-8 text-indigo-200/50" />
               </div>
             </div>
-            <div className="bg-gradient-to-r from-red-600 to-rose-600 p-6 rounded-xl">
+            <div className="bg-gradient-to-br from-red-600 to-rose-700 p-6 rounded-2xl shadow-lg shadow-red-500/20">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-red-100">Pending Apps</p>
-                  <p className="text-2xl font-bold text-white">{stats?.pendingApplications || 0}</p>
+                  <p className="text-red-100 text-sm font-medium">Pending Apps</p>
+                  <p className="text-2xl font-black text-white mt-1">{stats?.pendingApplications || 0}</p>
                 </div>
                 <Users className="w-8 h-8 text-red-200" />
               </div>
             </div>
-            <div className="bg-gradient-to-r from-indigo-600 to-purple-600 p-6 rounded-xl">
+            <div className="bg-gradient-to-br from-indigo-500 to-indigo-700 p-6 rounded-2xl shadow-lg shadow-indigo-500/20">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-indigo-100">Escrow Pending</p>
-                  <p className="text-2xl font-bold text-white">{stats?.escrowPending || 0}</p>
+                  <p className="text-indigo-100 text-sm font-medium">Escrow Pending</p>
+                  <p className="text-2xl font-black text-white mt-1">{stats?.escrowPending || 0}</p>
                 </div>
-                <DollarSign className="w-8 h-8 text-indigo-200" />
+                <DollarSign className="w-8 h-8 text-indigo-200/50" />
               </div>
             </div>
-            <div className="bg-gradient-to-r from-pink-600 to-red-600 p-6 rounded-xl">
+            <div className="bg-gradient-to-br from-red-500 to-red-700 p-6 rounded-2xl shadow-lg shadow-red-500/20">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-pink-100">Disputes</p>
-                  <p className="text-2xl font-bold text-white">{stats?.disputedOrders || 0}</p>
+                  <p className="text-red-100 text-sm font-medium">Disputes</p>
+                  <p className="text-2xl font-black text-white mt-1">{stats?.disputedOrders || 0}</p>
                 </div>
-                <MessageCircle className="w-8 h-8 text-pink-200" />
+                <MessageCircle className="w-8 h-8 text-red-200/50" />
               </div>
             </div>
           </div>

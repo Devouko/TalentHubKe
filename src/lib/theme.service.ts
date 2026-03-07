@@ -69,13 +69,13 @@ export class ThemeService extends BaseService {
   ]
 
   static async getActiveTheme(): Promise<SystemTheme | null> {
-    return prisma.systemTheme.findFirst({
+    return prisma.system_themes.findFirst({
       where: { isActive: true }
     })
   }
 
   static async getAllThemes(): Promise<SystemTheme[]> {
-    return prisma.systemTheme.findMany({
+    return prisma.system_themes.findMany({
       orderBy: { name: 'asc' }
     })
   }
@@ -83,10 +83,10 @@ export class ThemeService extends BaseService {
   static async setActiveTheme(themeId: string): Promise<void> {
     await this.executeWithTracking('setActiveTheme', async () => {
       await prisma.$transaction([
-        prisma.systemTheme.updateMany({
+        prisma.system_themes.updateMany({
           data: { isActive: false }
         }),
-        prisma.systemTheme.update({
+        prisma.system_themes.update({
           where: { id: themeId },
           data: { isActive: true }
         })
@@ -96,7 +96,7 @@ export class ThemeService extends BaseService {
 
   static async createCustomTheme(name: string, colors: ThemeColors): Promise<SystemTheme> {
     return this.executeWithTracking('createCustomTheme', async () => {
-      return prisma.systemTheme.create({
+      return prisma.system_themes.create({
         data: {
           id: this.ID_GENERATORS.user(),
           name,
@@ -107,7 +107,9 @@ export class ThemeService extends BaseService {
           foreground: colors.foreground || '240 10% 3.9%',
           muted: colors.muted || '240 4.8% 95.9%',
           border: colors.border || '240 5.9% 90%',
-          isActive: false
+          isActive: false,
+          createdAt: new Date(),
+          updatedAt: new Date()
         }
       })
     }, { name })
@@ -115,7 +117,7 @@ export class ThemeService extends BaseService {
 
   static async updateTheme(themeId: string, colors: Partial<ThemeColors>): Promise<SystemTheme> {
     return this.executeWithTracking('updateTheme', async () => {
-      return prisma.systemTheme.update({
+      return prisma.system_themes.update({
         where: { id: themeId },
         data: colors
       })
@@ -123,14 +125,17 @@ export class ThemeService extends BaseService {
   }
 
   static async initializeDefaultThemes(): Promise<void> {
-    const existingThemes = await prisma.systemTheme.count()
+    const existingThemes = await prisma.system_themes.count()
     
     if (existingThemes === 0) {
-      await prisma.systemTheme.createMany({
+      const now = new Date()
+      await prisma.system_themes.createMany({
         data: this.DEFAULT_THEMES.map((theme, index) => ({
           ...theme,
           id: this.ID_GENERATORS.user(),
-          isActive: index === 0
+          isActive: index === 0,
+          createdAt: now,
+          updatedAt: now
         }))
       })
     }

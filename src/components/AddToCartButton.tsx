@@ -19,17 +19,25 @@ interface AddToCartButtonProps {
 }
 
 export default function AddToCartButton({ product, className = '', redirectToCheckout = false }: AddToCartButtonProps) {
-  const { addToCart, refreshCart } = useCart()
+  const { addToCart } = useCart()
   const router = useRouter()
   const [isAdding, setIsAdding] = useState(false)
   const [isAdded, setIsAdded] = useState(false)
 
-  const handleAddToCart = async (e: React.MouseEvent) => {
+  const handleClick = async (e: React.MouseEvent) => {
     e.preventDefault()
     e.stopPropagation()
     
-    if (isAdding || isAdded) return
+    if (isAdding) return
     
+    // If already added, navigate to checkout
+    if (isAdded) {
+      console.log('Navigating to checkout...')
+      router.push('/checkout')
+      return
+    }
+    
+    // Add to cart
     setIsAdding(true)
     
     try {
@@ -47,7 +55,6 @@ export default function AddToCartButton({ product, className = '', redirectToChe
       }
       
       await addToCart(cartItem)
-      await refreshCart()
       
       setIsAdded(true)
       
@@ -58,7 +65,7 @@ export default function AddToCartButton({ product, className = '', redirectToChe
       } else {
         setTimeout(() => {
           setIsAdded(false)
-        }, 2000)
+        }, 3000)
       }
     } catch (error: any) {
       console.error('Add to cart failed:', error)
@@ -74,9 +81,15 @@ export default function AddToCartButton({ product, className = '', redirectToChe
   return (
     <button
       type="button"
-      onClick={handleAddToCart}
-      disabled={isAdding || isAdded}
-      className={`flex items-center justify-center gap-2 px-4 py-2 rounded font-medium transition-all disabled:opacity-50 disabled:cursor-not-allowed ${isAdded ? 'bg-green-600 hover:bg-green-600' : 'bg-blue-600 hover:bg-blue-700'} text-white ${className}`}
+      onClick={handleClick}
+      disabled={isAdding}
+      className={`flex items-center justify-center gap-2 px-4 py-2 rounded font-medium transition-all ${
+        isAdding 
+          ? 'bg-gray-400 cursor-not-allowed' 
+          : isAdded 
+          ? 'bg-green-600 hover:bg-green-700 cursor-pointer' 
+          : 'bg-blue-600 hover:bg-blue-700 cursor-pointer'
+      } text-white ${className}`}
     >
       {isAdding ? (
         <>
@@ -86,7 +99,7 @@ export default function AddToCartButton({ product, className = '', redirectToChe
       ) : isAdded ? (
         <>
           <Check className="w-4 h-4" />
-          <span>Added!</span>
+          <span>View Cart</span>
         </>
       ) : (
         <>

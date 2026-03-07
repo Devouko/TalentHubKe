@@ -30,16 +30,23 @@ export async function GET() {
   if (error) return error
 
   try {
-    const user = await prisma.users.findUniqueOrThrow({
+    const user = await prisma.users.findUnique({
       where: { id: session!.user.id },
-      select: profileSelect
+      select: {
+        ...profileSelect,
+        skills: true,
+        experiences: true,
+        certifications: true,
+        languages: true
+      }
     })
+
+    if (!user) {
+      return NextResponse.json({ error: 'User not found' }, { status: 404 })
+    }
 
     return NextResponse.json(user)
   } catch (error) {
-    if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2025') {
-      return NextResponse.json({ error: 'User not found' }, { status: 404 })
-    }
     console.error('Error fetching profile:', error)
     return NextResponse.json({ error: 'Failed to fetch profile' }, { status: 500 })
   }

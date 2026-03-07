@@ -19,7 +19,8 @@ export async function cachedFetch(url: string, options?: RequestInit) {
 
 export function clearCache(pattern?: string) {
   if (pattern) {
-    for (const key of cache.keys()) {
+    const keys = Array.from(cache.keys())
+    for (const key of keys) {
       if (key.includes(pattern)) {
         cache.delete(key)
       }

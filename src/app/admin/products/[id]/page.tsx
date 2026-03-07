@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react'
 import { useParams } from 'next/navigation'
 import { Package } from 'lucide-react'
-import AdminSidebarLayout from '../../../AdminSidebarLayout'
+import AdminSidebarLayout from '../../AdminSidebarLayout'
 import ProductForm from '@/components/admin/products/ProductForm'
 
 export default function EditProductPage() {

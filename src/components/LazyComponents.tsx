@@ -1,8 +1,7 @@
 import dynamic from 'next/dynamic'
 
-// Lazy load heavy components
 export const LazyReviewSection = dynamic(
-  () => import('@/components/reviews/ReviewSectionComplete').then(mod => ({ default: mod.ReviewSectionComplete })),
+  () => import('@/components/reviews/ReviewSectionComplete').then(mod => mod.ReviewSectionComplete),
   { 
     loading: () => <div className="animate-pulse bg-slate-200 dark:bg-slate-700 h-64 rounded-lg" />,
     ssr: false 
@@ -10,7 +9,7 @@ export const LazyReviewSection = dynamic(
 )
 
 export const LazyChart = dynamic(
-  () => import('recharts').then(mod => mod),
+  () => import('recharts'),
   { loading: () => <div className="animate-pulse bg-slate-200 h-64 rounded" /> }
 )
 

@@ -31,7 +31,7 @@ export class CartService extends BaseService {
       return this.removeFromCart(userId, productId)
     }
 
-    const product = await prisma.product.findUnique({
+    const product = await prisma.products.findUnique({
       where: { id: productId },
       select: { stock: true }
     })

@@ -62,11 +62,11 @@ export abstract class BaseService {
     if (!userId && phoneNumber) {
       const guestEmail = `guest_${phoneNumber}@marketplace.com`
       
-      let guestUser = await prisma.user.findUnique({ where: { email: guestEmail } })
+      let guestUser = await prisma.users.findUnique({ where: { email: guestEmail } })
       
       if (!guestUser) {
         try {
-          guestUser = await prisma.user.create({
+          guestUser = await prisma.users.create({
             data: {
               email: guestEmail,
               name: 'Guest User',
@@ -75,7 +75,7 @@ export abstract class BaseService {
             }
           })
         } catch (error) {
-          guestUser = await prisma.user.findUnique({ where: { email: guestEmail } })
+          guestUser = await prisma.users.findUnique({ where: { email: guestEmail } })
           if (!guestUser) throw error
         }
       }
@@ -90,7 +90,7 @@ export abstract class BaseService {
   }
 
   protected static async validateProduct(productId: string): Promise<any> {
-    const product = await prisma.product.findUnique({
+    const product = await prisma.products.findUnique({
       where: { id: productId, isActive: true }
     })
     

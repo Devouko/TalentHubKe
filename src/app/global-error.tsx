@@ -1,7 +1,6 @@
 'use client'
 
 import { useEffect } from 'react'
-import * as Sentry from '@sentry/nextjs'
 
 export default function GlobalError({
   error,
@@ -11,19 +10,19 @@ export default function GlobalError({
   reset: () => void
 }) {
   useEffect(() => {
-    Sentry.captureException(error)
+    console.error('Global Error:', error)
   }, [error])
 
   return (
     <html>
       <body>
-        <div className="min-h-screen bg-black text-white flex items-center justify-center">
-          <div className="text-center">
-            <h2 className="text-2xl font-bold mb-4">Something went wrong!</h2>
-            <p className="text-gray-400 mb-6">An error occurred while loading this page.</p>
+        <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+          <div className="text-center p-8">
+            <h2 className="text-2xl font-bold mb-4 text-gray-900">Something went wrong!</h2>
+            <p className="text-gray-600 mb-6">An error occurred while loading this page.</p>
             <button
               onClick={reset}
-              className="bg-green-500 hover:bg-green-600 text-white px-6 py-3 rounded-lg"
+              className="bg-emerald-500 hover:bg-emerald-600 text-white px-6 py-3 rounded-lg transition-colors"
             >
               Try again
             </button>

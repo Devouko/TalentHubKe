@@ -214,7 +214,7 @@ export default function TalentManagement() {
 
                     <div className="flex gap-2">
                       <button
-                        onClick={() => window.open(`/profile/${talent.id}`, '_blank')}
+                        onClick={() => router.push(`/profile/${talent.id}`)}
                         className="p-2 bg-[#0f172a] hover:bg-[#334155] border border-[#334155] rounded-lg transition-all"
                         title="View Profile"
                       >

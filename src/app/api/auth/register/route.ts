@@ -1,60 +1,29 @@
 import { NextResponse } from 'next/server';
-import bcrypt from 'bcryptjs';
-import { prisma } from '@/lib/prisma';
+import { handleApiError, apiResponse } from '@/lib/api-utils';
 
 export async function POST(request: Request) {
   try {
     const body = await request.json();
     const { email, password, name, userType } = body;
 
-    if (!email || !password || !name) {
-      return NextResponse.json(
-        { error: 'Missing required fields' },
-        { status: 400 }
-      );
-    }
-
-    const existingUser = await prisma.user.findUnique({
-      where: { email }
+    const response = await fetch(`${new URL(request.url).origin}/api/auth/signup`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, password, name, userType }),
     });
 
-    if (existingUser) {
-      return NextResponse.json(
-        { error: 'User already exists' },
-        { status: 400 }
-      );
-    }
-
-    const hashedPassword = await bcrypt.hash(password, 12);
-    const validUserType = ['CLIENT', 'FREELANCER', 'AGENCY', 'ADMIN'].includes(userType) ? userType : 'CLIENT';
+    const data = await response.json();
     
-    const user = await prisma.user.create({
-      data: {
-        name,
-        email,
-        password: hashedPassword,
-        userType: validUserType
-      }
-    });
+    if (!response.ok) {
+      return NextResponse.json(data, { status: response.status });
+    }
 
-    return NextResponse.json({
+    return apiResponse({
       message: 'User created successfully',
-      userId: user.id
+      userId: data.id
     });
 
   } catch (error: any) {
-    console.error('Registration error:', error);
-    
-    if (error.code === 'P1001') {
-      return NextResponse.json(
-        { error: 'Database connection failed. Please check your database configuration.' },
-        { status: 503 }
-      );
-    }
-    
-    return NextResponse.json(
-      { error: 'Registration failed. Please try again.' },
-      { status: 500 }
-    );
+    return handleApiError(error);
   }
 }

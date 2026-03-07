@@ -1,1 +1,127 @@
-import { z } from 'zod';\n\n/**\n * User-related validation schemas\n * These schemas validate user input for authentication and profile management\n */\nexport const UserSchema = z.object({\n  id: z.string().cuid(),\n  email: z.string().email('Invalid email format'),\n  name: z.string().min(2, 'Name must be at least 2 characters').optional(),\n  image: z.string().url('Invalid image URL').optional(),\n  userType: z.enum(['CLIENT', 'FREELANCER', 'AGENCY']),\n  balance: z.number().min(0, 'Balance cannot be negative'),\n});\n\n/**\n * Gig creation and update validation schema\n * Validates service listings with comprehensive field validation\n */\nexport const GigSchema = z.object({\n  title: z.string().min(5, 'Title must be at least 5 characters').max(100, 'Title too long'),\n  description: z.string().min(50, 'Description must be at least 50 characters').max(2000, 'Description too long'),\n  price: z.number().min(5, 'Minimum price is $5').max(10000, 'Maximum price is $10,000'),\n  deliveryTime: z.number().min(1, 'Minimum delivery time is 1 day').max(365, 'Maximum delivery time is 365 days'),\n  category: z.string().min(1, 'Category is required'),\n  subcategory: z.string().optional(),\n  tags: z.array(z.string()).min(1, 'At least one tag is required').max(10, 'Maximum 10 tags allowed'),\n  images: z.array(z.string().url('Invalid image URL')).min(1, 'At least one image is required').max(5, 'Maximum 5 images allowed'),\n});\n\n/**\n * Package validation schema for gig tiers\n * Validates different service packages (basic, standard, premium)\n */\nexport const PackageSchema = z.object({\n  name: z.string().min(3, 'Package name must be at least 3 characters'),\n  description: z.string().min(20, 'Description must be at least 20 characters'),\n  price: z.number().min(5, 'Minimum price is $5'),\n  deliveryTime: z.number().min(1, 'Minimum delivery time is 1 day'),\n  features: z.array(z.string()).min(1, 'At least one feature is required'),\n});\n\n/**\n * Order creation validation schema\n * Validates order placement with requirements and package selection\n */\nexport const OrderSchema = z.object({\n  gigId: z.string().cuid('Invalid gig ID'),\n  packageId: z.string().cuid('Invalid package ID').optional(),\n  requirements: z.string().max(1000, 'Requirements too long').optional(),\n  totalAmount: z.number().min(5, 'Minimum order amount is $5'),\n});\n\n/**\n * Review validation schema\n * Validates user reviews and ratings\n */\nexport const ReviewSchema = z.object({\n  rating: z.number().min(1, 'Minimum rating is 1').max(5, 'Maximum rating is 5'),\n  comment: z.string().max(500, 'Comment too long').optional(),\n  orderId: z.string().cuid('Invalid order ID'),\n});\n\n/**\n * Message validation schema\n * Validates chat messages between users\n */\nexport const MessageSchema = z.object({\n  content: z.string().min(1, 'Message cannot be empty').max(1000, 'Message too long'),\n  attachments: z.array(z.string().url('Invalid attachment URL')).max(5, 'Maximum 5 attachments'),\n  orderId: z.string().cuid('Invalid order ID'),\n});\n\n/**\n * Proposal validation schema\n * Validates freelancer proposals for projects\n */\nexport const ProposalSchema = z.object({\n  title: z.string().min(10, 'Title must be at least 10 characters').max(100, 'Title too long'),\n  description: z.string().min(100, 'Description must be at least 100 characters').max(2000, 'Description too long'),\n  budget: z.number().min(10, 'Minimum budget is $10').max(50000, 'Maximum budget is $50,000'),\n  timeline: z.number().min(1, 'Minimum timeline is 1 day').max(365, 'Maximum timeline is 365 days'),\n});\n\n/**\n * Category validation schema\n * Validates service categories\n */\nexport const CategorySchema = z.object({\n  name: z.string().min(2, 'Category name must be at least 2 characters').max(50, 'Category name too long'),\n  description: z.string().max(200, 'Description too long').optional(),\n  icon: z.string().optional(),\n});\n\n// Type exports for TypeScript integration\nexport type User = z.infer<typeof UserSchema>;\nexport type Gig = z.infer<typeof GigSchema>;\nexport type Package = z.infer<typeof PackageSchema>;\nexport type Order = z.infer<typeof OrderSchema>;\nexport type Review = z.infer<typeof ReviewSchema>;\nexport type Message = z.infer<typeof MessageSchema>;\nexport type Proposal = z.infer<typeof ProposalSchema>;\nexport type Category = z.infer<typeof CategorySchema>;\n\n/**\n * Form validation schemas for client-side validation\n * These are used with react-hook-form for real-time validation\n */\nexport const CreateGigFormSchema = GigSchema.omit({ id: true });\nexport const UpdateGigFormSchema = GigSchema.partial();\nexport const LoginFormSchema = z.object({\n  email: z.string().email('Invalid email format'),\n  password: z.string().min(6, 'Password must be at least 6 characters'),\n});\nexport const RegisterFormSchema = z.object({\n  email: z.string().email('Invalid email format'),\n  password: z.string().min(6, 'Password must be at least 6 characters'),\n  name: z.string().min(2, 'Name must be at least 2 characters'),\n  userType: z.enum(['CLIENT', 'FREELANCER', 'AGENCY']),\n});\n\n// Form type exports\nexport type CreateGigForm = z.infer<typeof CreateGigFormSchema>;\nexport type UpdateGigForm = z.infer<typeof UpdateGigFormSchema>;\nexport type LoginForm = z.infer<typeof LoginFormSchema>;\nexport type RegisterForm = z.infer<typeof RegisterFormSchema>;
+import { z } from 'zod';
+
+/**
+ * User-related validation schemas
+ * These schemas validate user input for authentication and profile management
+ */
+export const UserSchema = z.object({
+  id: z.string().cuid(),
+  email: z.string().email('Invalid email format'),
+  name: z.string().min(2, 'Name must be at least 2 characters').optional(),
+  image: z.string().url('Invalid image URL').optional(),
+  userType: z.enum(['CLIENT', 'FREELANCER', 'AGENCY']),
+  balance: z.number().min(0, 'Balance cannot be negative'),
+});
+
+/**
+ * Gig creation and update validation schema
+ * Validates service listings with comprehensive field validation
+ */
+export const GigSchema = z.object({
+  id: z.string().cuid().optional(),
+  title: z.string().min(5, 'Title must be at least 5 characters').max(100, 'Title too long'),
+  description: z.string().min(50, 'Description must be at least 50 characters').max(2000, 'Description too long'),
+  price: z.number().min(5, 'Minimum price is $5').max(10000, 'Maximum price is $10,000'),
+  deliveryTime: z.number().min(1, 'Minimum delivery time is 1 day').max(365, 'Maximum delivery time is 365 days'),
+  category: z.string().min(1, 'Category is required'),
+  subcategory: z.string().optional(),
+  tags: z.array(z.string()).min(1, 'At least one tag is required').max(10, 'Maximum 10 tags allowed'),
+  images: z.array(z.string().url('Invalid image URL')).min(1, 'At least one image is required').max(5, 'Maximum 5 images allowed'),
+});
+
+/**
+ * Package validation schema for gig tiers
+ * Validates different service packages (basic, standard, premium)
+ */
+export const PackageSchema = z.object({
+  name: z.string().min(3, 'Package name must be at least 3 characters'),
+  description: z.string().min(20, 'Description must be at least 20 characters'),
+  price: z.number().min(5, 'Minimum price is $5'),
+  deliveryTime: z.number().min(1, 'Minimum delivery time is 1 day'),
+  features: z.array(z.string()).min(1, 'At least one feature is required'),
+});
+
+/**
+ * Order creation validation schema
+ * Validates order placement with requirements and package selection
+ */
+export const OrderSchema = z.object({
+  gigId: z.string().cuid('Invalid gig ID'),
+  packageId: z.string().cuid('Invalid package ID').optional(),
+  requirements: z.string().max(1000, 'Requirements too long').optional(),
+  totalAmount: z.number().min(5, 'Minimum order amount is $5'),
+});
+
+/**
+ * Review validation schema
+ * Validates user reviews and ratings
+ */
+export const ReviewSchema = z.object({
+  rating: z.number().min(1, 'Minimum rating is 1').max(5, 'Maximum rating is 5'),
+  comment: z.string().max(500, 'Comment too long').optional(),
+  orderId: z.string().cuid('Invalid order ID'),
+});
+
+/**
+ * Message validation schema
+ * Validates chat messages between users
+ */
+export const MessageSchema = z.object({
+  content: z.string().min(1, 'Message cannot be empty').max(1000, 'Message too long'),
+  attachments: z.array(z.string().url('Invalid attachment URL')).max(5, 'Maximum 5 attachments'),
+  orderId: z.string().cuid('Invalid order ID'),
+});
+
+/**
+ * Proposal validation schema
+ * Validates freelancer proposals for projects
+ */
+export const ProposalSchema = z.object({
+  title: z.string().min(10, 'Title must be at least 10 characters').max(100, 'Title too long'),
+  description: z.string().min(100, 'Description must be at least 100 characters').max(2000, 'Description too long'),
+  budget: z.number().min(10, 'Minimum budget is $10').max(50000, 'Maximum budget is $50,000'),
+  timeline: z.number().min(1, 'Minimum timeline is 1 day').max(365, 'Maximum timeline is 365 days'),
+});
+
+/**
+ * Category validation schema
+ * Validates service categories
+ */
+export const CategorySchema = z.object({
+  name: z.string().min(2, 'Category name must be at least 2 characters').max(50, 'Category name too long'),
+  description: z.string().max(200, 'Description too long').optional(),
+  icon: z.string().optional(),
+});
+
+// Type exports for TypeScript integration
+export type User = z.infer<typeof UserSchema>;
+export type Gig = z.infer<typeof GigSchema>;
+export type Package = z.infer<typeof PackageSchema>;
+export type Order = z.infer<typeof OrderSchema>;
+export type Review = z.infer<typeof ReviewSchema>;
+export type Message = z.infer<typeof MessageSchema>;
+export type Proposal = z.infer<typeof ProposalSchema>;
+export type Category = z.infer<typeof CategorySchema>;
+
+/**
+ * Form validation schemas for client-side validation
+ * These are used with react-hook-form for real-time validation
+ */
+export const CreateGigFormSchema = GigSchema.omit({ id: true });
+export const UpdateGigFormSchema = GigSchema.partial();
+export const LoginFormSchema = z.object({
+  email: z.string().email('Invalid email format'),
+  password: z.string().min(6, 'Password must be at least 6 characters'),
+});
+export const RegisterFormSchema = z.object({
+  email: z.string().email('Invalid email format'),
+  password: z.string().min(6, 'Password must be at least 6 characters'),
+  name: z.string().min(2, 'Name must be at least 2 characters'),
+  userType: z.enum(['CLIENT', 'FREELANCER', 'AGENCY']),
+});
+
+// Form type exports
+export type CreateGigForm = z.infer<typeof CreateGigFormSchema>;
+export type UpdateGigForm = z.infer<typeof UpdateGigFormSchema>;
+export type LoginForm = z.infer<typeof LoginFormSchema>;
+export type RegisterForm = z.infer<typeof RegisterFormSchema>;

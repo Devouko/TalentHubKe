@@ -65,14 +65,19 @@ export default function SellersPage() {
       <div className="min-h-screen bg-black text-white p-6">
         <div className="max-w-7xl mx-auto">
           <div className="flex items-center gap-3 mb-8">
-            <Users className="w-8 h-8 text-purple-400" />
-            <h1 className="text-3xl font-bold">Seller Applications</h1>
+            <div className="p-3 bg-blue-600/10 rounded-2xl">
+              <Users className="w-8 h-8 text-blue-600" />
+            </div>
+            <div>
+              <h1 className="text-3xl font-black text-white tracking-tight italic">Seller <span className="text-blue-500">Applications</span></h1>
+              <p className="text-slate-500 font-medium">Review and manage marketplace sellers</p>
+            </div>
           </div>
 
           {loading ? (
-            <div className="text-center py-12">
-              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-500 mx-auto"></div>
-              <p className="text-gray-400 mt-4">Loading applications...</p>
+            <div className="flex flex-col items-center justify-center py-24">
+              <div className="animate-spin rounded-full h-12 w-12 border-4 border-slate-800 border-t-blue-600"></div>
+              <p className="text-slate-500 mt-4 font-medium tracking-tight">Loading applications...</p>
             </div>
           ) : (
             <div className="space-y-6">
