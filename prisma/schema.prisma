@@ -7,57 +7,313 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-model User {
-  id                String             @id @default(cuid())
-  email             String             @unique
-  name              String?
-  image             String?
-  profileImage      String?
-  password          String?
-  userType          UserType           @default(CLIENT)
-  balance           Float              @default(0)
-  isVerified        Boolean            @default(false)
-  sellerStatus      SellerStatus       @default(NOT_APPLIED)
-  nationalId        String?
-  kraPinNumber      String?
-  phoneNumber       String?
-  county            String?
-  bio               String?
-  createdAt         DateTime           @default(now())
-  updatedAt         DateTime           @updatedAt
-  gigs              Gig[]
-  messages          Message[]
-  orders            Order[]
-  projects          Project[]
-  proposals         Proposal[]
-  reviews           Review[]
-  sellerApplication SellerApplication?
-  buyerTransactions EscrowTransaction[] @relation("BuyerTransactions")
-  sellerTransactions EscrowTransaction[] @relation("SellerTransactions")
+model applications {
+  id             String            @id
+  jobId          String
+  applicantId    String
+  coverLetter    String
+  skills         String
+  experience     String
+  status         ApplicationStatus @default(PENDING)
+  createdAt      DateTime          @default(now())
+  updatedAt      DateTime
+  users          users             @relation(fields: [applicantId], references: [id], onDelete: Cascade)
+  gigs           gigs              @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  job_interviews job_interviews[]
 
-  @@map("users")
+  @@unique([jobId, applicantId])
 }
 
-model SellerApplication {
-  id           String            @id @default(cuid())
-  businessName String
-  description  String
+model bids {
+  id         String      @id
+  amount     Float
+  proposal   String
+  timeline   Int
+  status     BidStatus   @default(PENDING)
+  createdAt  DateTime    @default(now())
+  updatedAt  DateTime
+  bidderId   String
+  gigId      String
+  users      users       @relation(fields: [bidderId], references: [id], onDelete: Cascade)
+  gigs       gigs        @relation(fields: [gigId], references: [id], onDelete: Cascade)
+  interviews interviews?
+}
+
+model cart {
+  id        String   @id
+  userId    String
+  productId String
+  quantity  Int      @default(1)
+  createdAt DateTime @default(now())
+  updatedAt DateTime
+  products  products @relation(fields: [productId], references: [id], onDelete: Cascade)
+  users     users    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, productId])
+}
+
+model categories {
+  id          String   @id
+  name        String   @unique
+  description String?
+  icon        String?
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+}
+
+model conversations {
+  id                                 String     @id
+  user1Id                            String
+  user2Id                            String
+  lastMessageAt                      DateTime   @default(now())
+  createdAt                          DateTime   @default(now())
+  updatedAt                          DateTime
+  users_conversations_user1IdTousers users      @relation("conversations_user1IdTousers", fields: [user1Id], references: [id])
+  users_conversations_user2IdTousers users      @relation("conversations_user2IdTousers", fields: [user2Id], references: [id])
+  messages                           messages[]
+
+  @@unique([user1Id, user2Id])
+}
+
+model escrow_items {
+  id                  String              @id
+  quantity            Int
+  price               Float
+  productId           String
+  transactionId       String
+  products            products            @relation(fields: [productId], references: [id])
+  escrow_transactions escrow_transactions @relation(fields: [transactionId], references: [id], onDelete: Cascade)
+}
+
+model escrow_transactions {
+  id                                        String              @id
+  amount                                    Float
+  currency                                  String              @default("KES")
+  platformFeePercent                        Float               @default(0.025)
+  platformFee                               Float?
+  sellerPayout                              Float?
+  status                                    EscrowStatus        @default(PENDING)
+  buyerId                                   String
+  sellerId                                  String?
+  orderId                                   String?             @unique
+  productId                                 String?
+  paymentRef                                String?
+  proofOfDelivery                           Json?
+  adminNotes                                String?
+  metadata                                  Json?
+  expiresAt                                 DateTime?
+  deliveryDeadline                          DateTime?
+  confirmationDeadline                      DateTime?
+  fundedAt                                  DateTime?
+  deliveredAt                               DateTime?
+  releasedAt                                DateTime?
+  refundedAt                                DateTime?
+  createdAt                                 DateTime            @default(now())
+  updatedAt                                 DateTime
+  escrow_items                              escrow_items[]
+  escrow_audit_logs                         escrow_audit_logs[]
+  escrow_disputes                           escrow_disputes?
+  users_escrow_transactions_buyerIdTousers  users               @relation("escrow_transactions_buyerIdTousers", fields: [buyerId], references: [id])
+  products                                  products?           @relation(fields: [productId], references: [id])
+  users_escrow_transactions_sellerIdTousers users?              @relation("escrow_transactions_sellerIdTousers", fields: [sellerId], references: [id])
+}
+
+model gigs {
+  id                 String              @id
+  title              String
+  description        String
+  price              Float
+  deliveryTime       Int
+  category           String
+  subcategory        String?
+  tags               String[]
+  images             String[]
+  isActive           Boolean             @default(true)
+  rating             Float               @default(0)
+  reviewCount        Int                 @default(0)
+  orderCount         Int                 @default(0)
+  createdAt          DateTime            @default(now())
+  updatedAt          DateTime
+  sellerId           String
+  allowBidding       Boolean             @default(false)
+  applications       applications[]
+  bids               bids[]
+  users              users               @relation(fields: [sellerId], references: [id], onDelete: Cascade)
+  interview_criteria interview_criteria?
+  orders             orders[]
+  packages           packages[]
+  reviews            reviews[]
+}
+
+model interview_criteria {
+  id           String       @id
+  questions    String[]
+  requirements String[]
   skills       String[]
-  experience   String
-  portfolio    String[]
-  idDocument   String?
-  status       ApplicationStatus @default(PENDING)
-  adminNotes   String?
-  createdAt    DateTime          @default(now())
-  updatedAt    DateTime          @updatedAt
-  userId       String            @unique
-  user         User              @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@map("seller_applications")
+  experience   String?
+  budget       Float?
+  timeline     Int?
+  isActive     Boolean      @default(true)
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime
+  gigId        String       @unique
+  gigs         gigs         @relation(fields: [gigId], references: [id], onDelete: Cascade)
+  interviews   interviews[]
 }
 
-model Project {
-  id          String      @id @default(cuid())
+model interviews {
+  id                 String             @id
+  status             InterviewStatus    @default(SCHEDULED)
+  scheduledAt        DateTime?
+  responses          Json?
+  notes              String?
+  score              Int?
+  feedback           String?
+  createdAt          DateTime           @default(now())
+  updatedAt          DateTime
+  bidId              String             @unique
+  criteriaId         String
+  bids               bids               @relation(fields: [bidId], references: [id], onDelete: Cascade)
+  interview_criteria interview_criteria @relation(fields: [criteriaId], references: [id], onDelete: Cascade)
+}
+
+model job_interviews {
+  id            String             @id
+  applicationId String
+  scheduledAt   DateTime
+  questions     String[]
+  duration      Int                @default(30)
+  type          InterviewType      @default(VIDEO)
+  status        JobInterviewStatus @default(SCHEDULED)
+  notes         String?
+  createdAt     DateTime           @default(now())
+  updatedAt     DateTime
+  applications  applications       @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+}
+
+model messages {
+  id             String         @id
+  content        String
+  attachments    String[]
+  isRead         Boolean        @default(false)
+  createdAt      DateTime       @default(now())
+  senderId       String
+  orderId        String?
+  conversationId String?
+  conversations  conversations? @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  orders         orders?        @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  users          users          @relation(fields: [senderId], references: [id])
+}
+
+model notifications {
+  id         String           @id
+  title      String
+  message    String
+  type       NotificationType
+  isRead     Boolean          @default(false)
+  userId     String
+  entityId   String?
+  entityType String?
+  createdAt  DateTime         @default(now())
+  users      users            @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model orders {
+  id             String           @id
+  status         OrderStatus      @default(PENDING)
+  totalAmount    Float
+  deliveryDate   DateTime?
+  requirements   String?
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime
+  buyerId        String
+  gigId          String?
+  packageId      String?
+  items          Json?
+  phoneNumber    String?
+  messages       messages[]
+  users          users            @relation(fields: [buyerId], references: [id])
+  gigs           gigs?            @relation(fields: [gigId], references: [id])
+  packages       packages?        @relation(fields: [packageId], references: [id])
+  payments       payments[]
+  reviews        reviews?
+  seller_reviews seller_reviews[]
+}
+
+model packages {
+  id           String   @id
+  name         String
+  description  String
+  price        Float
+  deliveryTime Int
+  features     String[]
+  gigId        String
+  orders       orders[]
+  gigs         gigs     @relation(fields: [gigId], references: [id], onDelete: Cascade)
+}
+
+model payments {
+  id                 String        @id
+  orderId            String
+  amount             Float
+  phoneNumber        String
+  status             PaymentStatus @default(PENDING)
+  checkoutRequestId  String?       @unique
+  merchantRequestId  String?
+  mpesaReceiptNumber String?
+  transactionDate    String?
+  failureReason      String?
+  createdAt          DateTime      @default(now())
+  updatedAt          DateTime
+  orders             orders        @relation(fields: [orderId], references: [id], onDelete: Cascade)
+}
+
+model product_reviews {
+  id         String   @id
+  productId  String
+  userId     String
+  rating     Int      @db.SmallInt
+  title      String?
+  comment    String
+  isVerified Boolean  @default(false)
+  createdAt  DateTime @default(now())
+  products   products @relation(fields: [productId], references: [id], onDelete: Cascade)
+  users      users    @relation(fields: [userId], references: [id])
+}
+
+model products {
+  id                  String                @id
+  title               String
+  description         String
+  price               Float
+  images              String[]
+  category            String
+  stock               Int                   @default(0)
+  isActive            Boolean               @default(true)
+  rating              Float                 @default(0)
+  reviewCount         Int                   @default(0)
+  orderCount          Int                   @default(0)
+  createdAt           DateTime              @default(now())
+  updatedAt           DateTime
+  brand               String?
+  discountPercent     Int?
+  discountPrice       Float?
+  features            String[]
+  materials           String?
+  sellerId            String?
+  specifications      Json?
+  warranty            String?
+  whatsappNumber      String?
+  cart                cart[]
+  escrow_items        escrow_items[]
+  escrow_transactions escrow_transactions[]
+  product_reviews     product_reviews[]
+  users               users?                @relation(fields: [sellerId], references: [id])
+  wishlist_items      wishlist_items[]
+}
+
+model projects {
+  id          String      @id
   title       String
   description String
   budget      Float
@@ -69,104 +325,14 @@ model Project {
   location    String?
   isActive    Boolean     @default(true)
   createdAt   DateTime    @default(now())
-  updatedAt   DateTime    @updatedAt
+  updatedAt   DateTime
   clientId    String
-  client      User        @relation(fields: [clientId], references: [id], onDelete: Cascade)
-  proposals   Proposal[]
-
-  @@map("projects")
+  users       users       @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  proposals   proposals[]
 }
 
-model Gig {
-  id           String    @id @default(cuid())
-  title        String
-  description  String
-  price        Float
-  deliveryTime Int
-  category     String
-  subcategory  String?
-  tags         String[]
-  images       String[]
-  isActive     Boolean   @default(true)
-  rating       Float     @default(0)
-  reviewCount  Int       @default(0)
-  orderCount   Int       @default(0)
-  createdAt    DateTime  @default(now())
-  updatedAt    DateTime  @updatedAt
-  sellerId     String
-  seller       User      @relation(fields: [sellerId], references: [id], onDelete: Cascade)
-  orders       Order[]
-  packages     Package[]
-  reviews      Review[]
-
-  @@map("gigs")
-}
-
-model Package {
-  id           String   @id @default(cuid())
-  name         String
-  description  String
-  price        Float
-  deliveryTime Int
-  features     String[]
-  gigId        String
-  orders       Order[]
-  gig          Gig      @relation(fields: [gigId], references: [id], onDelete: Cascade)
-
-  @@map("packages")
-}
-
-model Order {
-  id           String      @id @default(cuid())
-  status       OrderStatus @default(PENDING)
-  totalAmount  Float
-  deliveryDate DateTime?
-  requirements String?
-  createdAt    DateTime    @default(now())
-  updatedAt    DateTime    @updatedAt
-  buyerId      String
-  gigId        String
-  packageId    String?
-  messages     Message[]
-  buyer        User        @relation(fields: [buyerId], references: [id])
-  gig          Gig         @relation(fields: [gigId], references: [id])
-  package      Package?    @relation(fields: [packageId], references: [id])
-  review       Review?
-
-  @@map("orders")
-}
-
-model Review {
-  id         String   @id @default(cuid())
-  rating     Int
-  comment    String?
-  createdAt  DateTime @default(now())
-  reviewerId String
-  gigId      String
-  orderId    String   @unique
-  gig        Gig      @relation(fields: [gigId], references: [id], onDelete: Cascade)
-  order      Order    @relation(fields: [orderId], references: [id])
-  reviewer   User     @relation(fields: [reviewerId], references: [id])
-
-  @@map("reviews")
-}
-
-model Message {
-  id          String   @id @default(cuid())
-  content     String
-  attachments String[]
-  isRead      Boolean  @default(false)
-  createdAt   DateTime @default(now())
-  senderId    String
-  orderId     String
-  order       Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
-  sender      User     @relation(fields: [senderId], references: [id])
-
-  @@map("messages")
-}
-
-model Proposal {
-  id           String         @id @default(cuid())
+model proposals {
+  id           String         @id
   title        String
   description  String
   budget       Float
@@ -174,101 +340,202 @@ model Proposal {
   timeline     Int
   status       ProposalStatus @default(PENDING)
   createdAt    DateTime       @default(now())
-  updatedAt    DateTime       @updatedAt
+  updatedAt    DateTime
   freelancerId String
   projectId    String?
-  freelancer   User           @relation(fields: [freelancerId], references: [id])
-  project      Project?       @relation(fields: [projectId], references: [id])
-
-  @@map("proposals")
+  users        users          @relation(fields: [freelancerId], references: [id])
+  projects     projects?      @relation(fields: [projectId], references: [id])
 }
 
-model EscrowTransaction {
-  id          String            @id @default(cuid())
-  amount      Float
-  status      EscrowStatus      @default(PENDING)
-  buyerId     String
-  sellerId    String?
-  productId   String
-  adminNotes  String?
-  createdAt   DateTime          @default(now())
-  updatedAt   DateTime          @updatedAt
-  buyer       User              @relation("BuyerTransactions", fields: [buyerId], references: [id])
-  seller      User?             @relation("SellerTransactions", fields: [sellerId], references: [id])
-  product     Product           @relation(fields: [productId], references: [id])
-  items       EscrowItem[]
-
-  @@map("escrow_transactions")
+model reviews {
+  id         String   @id
+  rating     Int
+  comment    String?
+  createdAt  DateTime @default(now())
+  reviewerId String
+  gigId      String
+  orderId    String   @unique
+  images     String[]
+  isVerified Boolean  @default(false)
+  gigs       gigs     @relation(fields: [gigId], references: [id], onDelete: Cascade)
+  orders     orders   @relation(fields: [orderId], references: [id])
+  users      users    @relation(fields: [reviewerId], references: [id])
 }
 
-model EscrowItem {
-  id            String            @id @default(cuid())
-  quantity      Int
-  price         Float
-  productId     String
-  transactionId String
-  product       Product           @relation(fields: [productId], references: [id])
-  transaction   EscrowTransaction @relation(fields: [transactionId], references: [id], onDelete: Cascade)
-
-  @@map("escrow_items")
+model security_settings {
+  id                String   @id @default("default")
+  autoBackupEnabled Boolean  @default(true)
+  backupFrequency   String   @default("DAILY")
+  maxLoginAttempts  Int      @default(5)
+  sessionTimeout    Int      @default(120)
+  twoFactorRequired Boolean  @default(false)
+  passwordMinLength Int      @default(8)
+  updatedAt         DateTime
 }
 
-model Product {
-  id               String              @id @default(cuid())
-  title            String
-  description      String
-  price            Float
-  images           String[]
-  category         String
-  stock            Int                 @default(0)
-  isActive         Boolean             @default(true)
-  rating           Float               @default(0)
-  reviewCount      Int                 @default(0)
-  orderCount       Int                 @default(0)
-  createdAt        DateTime            @default(now())
-  updatedAt        DateTime            @updatedAt
-  escrowItems      EscrowItem[]
-  escrowTransactions EscrowTransaction[]
-
-  @@map("products")
+model seller_applications {
+  id           String            @id
+  businessName String
+  description  String
+  skills       String[]
+  experience   String
+  portfolio    String[]
+  idDocument   String?
+  status       ApplicationStatus @default(PENDING)
+  adminNotes   String?
+  createdAt    DateTime          @default(now())
+  updatedAt    DateTime
+  userId       String            @unique
+  users        users             @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
-model Category {
-  id          String   @id @default(cuid())
-  name        String   @unique
-  description String?
-  icon        String?
-  isActive    Boolean  @default(true)
-  createdAt   DateTime @default(now())
+model seller_reviews {
+  id                                     String   @id
+  sellerId                               String
+  reviewerId                             String
+  rating                                 Int      @db.SmallInt
+  comment                                String?
+  orderId                                String?
+  createdAt                              DateTime @default(now())
+  updatedAt                              DateTime
+  orders                                 orders?  @relation(fields: [orderId], references: [id])
+  users_seller_reviews_reviewerIdTousers users    @relation("seller_reviews_reviewerIdTousers", fields: [reviewerId], references: [id], onDelete: Cascade)
+  users_seller_reviews_sellerIdTousers   users    @relation("seller_reviews_sellerIdTousers", fields: [sellerId], references: [id], onDelete: Cascade)
 
-  @@map("categories")
+  @@unique([reviewerId, sellerId, orderId])
 }
 
-model ThemeSettings {
-  id             String   @id @default(cuid())
+model system_backups {
+  id        String       @id
+  type      BackupType   @default(MANUAL)
+  status    BackupStatus @default(PENDING)
+  size      Int?
+  filename  String?
+  createdAt DateTime     @default(now())
+  createdBy String
+  users     users        @relation(fields: [createdBy], references: [id])
+}
+
+model system_logs {
+  id        String   @id
+  type      LogType  @default(INFO)
+  message   String
+  details   Json?
+  userId    String?
+  ipAddress String?
+  userAgent String?
+  createdAt DateTime @default(now())
+  users     users?   @relation(fields: [userId], references: [id])
+}
+
+model system_themes {
+  id         String   @id
+  name       String   @unique
+  primary    String
+  secondary  String
+  accent     String
+  background String   @default("0 0% 100%")
+  foreground String   @default("240 10% 3.9%")
+  muted      String   @default("240 4.8% 95.9%")
+  border     String   @default("240 5.9% 90%")
+  isActive   Boolean  @default(false)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime
+}
+
+model theme_settings {
+  id             String   @id
   primaryColor   String   @default("#3b82f6")
   secondaryColor String   @default("#10b981")
   accentColor    String   @default("#8b5cf6")
   isActive       Boolean  @default(true)
   createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
-
-  @@map("theme_settings")
+  updatedAt      DateTime
 }
 
-enum EscrowStatus {
-  PENDING
-  APPROVED
-  REJECTED
-  COMPLETED
-  REFUNDED
+model users {
+  id                                                      String                @id
+  email                                                   String                @unique
+  name                                                    String?
+  image                                                   String?
+  profileImage                                            String?
+  password                                                String?
+  userType                                                UserType              @default(CLIENT)
+  balance                                                 Float                 @default(0)
+  isVerified                                              Boolean               @default(false)
+  nationalId                                              String?
+  kraPinNumber                                            String?
+  phoneNumber                                             String?
+  county                                                  String?
+  bio                                                     String?
+  createdAt                                               DateTime              @default(now())
+  updatedAt                                               DateTime
+  sellerStatus                                            SellerStatus          @default(NOT_APPLIED)
+  sellerRating                                            Float                 @default(0)
+  sellerReviewCount                                       Int                   @default(0)
+  theme                                                   String                @default("default")
+  applications                                            applications[]
+  bids                                                    bids[]
+  cart                                                    cart[]
+  conversations_conversations_user1IdTousers              conversations[]       @relation("conversations_user1IdTousers")
+  conversations_conversations_user2IdTousers              conversations[]       @relation("conversations_user2IdTousers")
+  escrow_transactions_escrow_transactions_buyerIdTousers  escrow_transactions[] @relation("escrow_transactions_buyerIdTousers")
+  escrow_transactions_escrow_transactions_sellerIdTousers escrow_transactions[] @relation("escrow_transactions_sellerIdTousers")
+  gigs                                                    gigs[]
+  messages                                                messages[]
+  notifications                                           notifications[]
+  orders                                                  orders[]
+  product_reviews                                         product_reviews[]
+  products                                                products[]
+  projects                                                projects[]
+  proposals                                               proposals[]
+  reviews                                                 reviews[]
+  seller_applications                                     seller_applications?
+  seller_reviews_seller_reviews_reviewerIdTousers         seller_reviews[]      @relation("seller_reviews_reviewerIdTousers")
+  seller_reviews_seller_reviews_sellerIdTousers           seller_reviews[]      @relation("seller_reviews_sellerIdTousers")
+  system_backups                                          system_backups[]
+  system_logs                                             system_logs[]
+  wishlist_items                                          wishlist_items[]
+  disputes_raised                                         escrow_disputes[]     @relation("dispute_raiser")
+  disputes_resolved                                       escrow_disputes[]     @relation("dispute_resolver")
 }
 
-enum SellerStatus {
-  NOT_APPLIED
-  PENDING
-  APPROVED
-  REJECTED
+model wishlist_items {
+  id        String   @id
+  userId    String
+  productId String
+  createdAt DateTime @default(now())
+  products  products @relation(fields: [productId], references: [id], onDelete: Cascade)
+  users     users    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, productId])
+}
+
+model escrow_audit_logs {
+  id        String              @id
+  escrowId  String
+  event     String
+  actor     String
+  data      Json?
+  timestamp DateTime            @default(now())
+  escrow    escrow_transactions @relation(fields: [escrowId], references: [id], onDelete: Cascade)
+}
+
+model escrow_disputes {
+  id         String              @id
+  escrowId   String              @unique
+  raisedBy   String
+  reason     String
+  evidence   Json?
+  status     DisputeStatus       @default(OPEN)
+  resolution String?
+  resolvedBy String?
+  notes      String?
+  createdAt  DateTime            @default(now())
+  resolvedAt DateTime?
+  escrow     escrow_transactions @relation(fields: [escrowId], references: [id], onDelete: Cascade)
+  raiser     users               @relation("dispute_raiser", fields: [raisedBy], references: [id])
+  resolver   users?              @relation("dispute_resolver", fields: [resolvedBy], references: [id])
 }
 
 enum ApplicationStatus {
@@ -277,16 +544,80 @@ enum ApplicationStatus {
   REJECTED
 }
 
-enum ProjectType {
-  FIXED
-  HOURLY
+enum BackupStatus {
+  PENDING
+  IN_PROGRESS
+  COMPLETED
+  FAILED
 }
 
-enum UserType {
-  CLIENT
-  FREELANCER
-  AGENCY
-  ADMIN
+enum BackupType {
+  MANUAL
+  AUTOMATIC
+}
+
+enum BidStatus {
+  PENDING
+  ACCEPTED
+  REJECTED
+  WITHDRAWN
+}
+
+enum EscrowStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  COMPLETED
+  REFUNDED
+  INITIATED
+  FUNDED
+  IN_PROGRESS
+  DELIVERED
+  DISPUTED
+  RELEASED
+  CANCELLED
+  EXPIRED
+}
+
+enum InterviewStatus {
+  SCHEDULED
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+}
+
+enum InterviewType {
+  VIDEO
+  PHONE
+  IN_PERSON
+}
+
+enum JobInterviewStatus {
+  SCHEDULED
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+}
+
+enum LogType {
+  INFO
+  WARNING
+  ERROR
+  SECURITY
+  BACKUP
+}
+
+enum NotificationType {
+  ORDER_UPDATE
+  MESSAGE
+  PAYMENT
+  REVIEW
+  SYSTEM
+  BID_RECEIVED
+  BID_ACCEPTED
+  BID_REJECTED
+  INTERVIEW_SCHEDULED
+  APPLICATION
 }
 
 enum OrderStatus {
@@ -296,10 +627,44 @@ enum OrderStatus {
   COMPLETED
   CANCELLED
   DISPUTED
+  PAID
+  FAILED
+}
+
+enum PaymentStatus {
+  PENDING
+  SUCCESS
+  FAILED
+}
+
+enum ProjectType {
+  FIXED
+  HOURLY
 }
 
 enum ProposalStatus {
   PENDING
   ACCEPTED
   REJECTED
+}
+
+enum SellerStatus {
+  NOT_APPLIED
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+enum UserType {
+  CLIENT
+  FREELANCER
+  AGENCY
+  ADMIN
+}
+
+enum DisputeStatus {
+  OPEN
+  UNDER_REVIEW
+  RESOLVED
+  CLOSED
 }

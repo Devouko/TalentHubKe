@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { motion } from 'motion/react'
+import { motion } from 'framer-motion'
 import { useSession } from 'next-auth/react'
 import { 
   ShoppingCart, Package, Truck, CheckCircle, Clock, 
@@ -83,12 +83,42 @@ export default function OrdersManagement() {
   ]
 
   useEffect(() => {
-    // Simulate API call
-    setTimeout(() => {
-      setOrders(mockOrders)
+    if (session?.user?.id) {
+      fetchOrders()
+    } else {
       setLoading(false)
-    }, 1000)
-  }, [])
+    }
+  }, [session])
+
+  const fetchOrders = async () => {
+    try {
+      setLoading(true)
+      const response = await fetch(`/api/orders?sellerId=${session?.user?.id}`)
+      const data = await response.json()
+      
+      const ordersArray = Array.isArray(data) ? data : (data.orders || [])
+      
+      // Transform API orders to match the UI format
+      const transformedOrders = ordersArray.map((order: any) => ({
+        id: order.id.slice(0, 8),
+        product: order.items?.[0]?.name || 'Product',
+        customer: order.customerName || 'Customer',
+        customerEmail: order.customerEmail || 'customer@email.com',
+        amount: order.totalAmount,
+        status: (order.status || 'pending').toLowerCase(),
+        date: order.createdAt,
+        quantity: order.items?.[0]?.quantity || 1,
+        shippingAddress: order.requirements || 'N/A',
+        paymentMethod: order.paymentMethod || 'M-Pesa'
+      }))
+      
+      setOrders(transformedOrders)
+    } catch (error) {
+      console.error('Error fetching orders:', error)
+    } finally {
+      setLoading(false)
+    }
+  }
 
   const getStatusColor = (status) => {
     switch (status) {
@@ -151,7 +181,7 @@ export default function OrdersManagement() {
         >
           <div className="flex justify-between items-center mb-6">
             <div>
-              <h1 className="text-4xl font-bold bg-gradient-to-r from-green-400 to-yellow-400 bg-clip-text text-transparent mb-2">>
+              <h1 className="text-4xl font-bold bg-gradient-to-r from-green-400 to-yellow-400 bg-clip-text text-transparent mb-2">
                 Order Management
               </h1>
               <p className="text-gray-400">Track and manage your customer orders</p>

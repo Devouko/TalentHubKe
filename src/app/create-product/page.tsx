@@ -1,21 +1,12 @@
 'use client'
 
+import { CATEGORY_OPTIONS } from '@/constants/categories'
 import { useState } from 'react'
-import { motion } from 'motion/react'
 import { useRouter } from 'next/navigation'
 import { useSession } from 'next-auth/react'
-import { Plus, X, DollarSign, Package, Truck } from 'lucide-react'
+import { Plus, X, Package, Truck } from 'lucide-react'
 
-const productCategories = [
-  'Electronics & Gadgets',
-  'Fashion & Clothing',
-  'Home & Garden',
-  'Health & Beauty',
-  'Sports & Fitness',
-  'Books & Media',
-  'Art & Crafts',
-  'Digital Products'
-]
+const productCategories = CATEGORY_OPTIONS
 
 export default function CreateProduct() {
   const { data: session } = useSession()
@@ -42,17 +33,24 @@ export default function CreateProduct() {
 
     setLoading(true)
     try {
-      const response = await fetch('/api/gigs', {
+      const response = await fetch('/api/products', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          ...formData,
-          deliveryTime: formData.shippingTime || '7'
+          title: formData.title,
+          description: formData.description,
+          price: parseFloat(formData.price),
+          comparePrice: formData.comparePrice ? parseFloat(formData.comparePrice) : null,
+          category: formData.category,
+          stock: parseInt(formData.inventory) || 0,
+          shippingTime: parseInt(formData.shippingTime) || 3,
+          tags: formData.tags,
+          features: formData.features
         })
       })
 
       if (response.ok) {
-        router.push('/seller-dashboard')
+        router.push('/seller-dashboard/products')
       }
     } catch (error) {
       console.error('Failed to create product:', error)
@@ -63,128 +61,83 @@ export default function CreateProduct() {
 
   const addTag = () => {
     if (tagInput.trim() && !formData.tags.includes(tagInput.trim())) {
-      setFormData(prev => ({
-        ...prev,
-        tags: [...prev.tags, tagInput.trim()]
-      }))
+      setFormData(prev => ({ ...prev, tags: [...prev.tags, tagInput.trim()] }))
       setTagInput('')
     }
   }
 
   const removeTag = (tag: string) => {
-    setFormData(prev => ({
-      ...prev,
-      tags: prev.tags.filter(t => t !== tag)
-    }))
+    setFormData(prev => ({ ...prev, tags: prev.tags.filter(t => t !== tag) }))
   }
 
   const addFeature = () => {
     if (featureInput.trim() && !formData.features.includes(featureInput.trim())) {
-      setFormData(prev => ({
-        ...prev,
-        features: [...prev.features, featureInput.trim()]
-      }))
+      setFormData(prev => ({ ...prev, features: [...prev.features, featureInput.trim()] }))
       setFeatureInput('')
     }
   }
 
   const removeFeature = (feature: string) => {
-    setFormData(prev => ({
-      ...prev,
-      features: prev.features.filter(f => f !== feature)
-    }))
+    setFormData(prev => ({ ...prev, features: prev.features.filter(f => f !== feature) }))
   }
 
   if (!session) {
     return (
-      <div className="min-h-screen text-white flex items-center justify-center" style={{ backgroundColor: 'var(--primary)' }}>
+      <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
-          <h1 className="text-2xl font-bold mb-4">Please sign in to create a product</h1>
+          <h1 className="text-lg font-semibold mb-4">Please sign in to create a product</h1>
         </div>
       </div>
     )
   }
 
   return (
-    <div className="min-h-screen text-white pt-20 px-4" style={{ backgroundColor: 'var(--primary)' }}>
-      <div className="max-w-4xl mx-auto">
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="mb-8"
-        >
-          <h1 className="text-4xl font-bold mb-2" style={{ color: 'var(--secondary)' }}>
-            Create New Product
-          </h1>
-          <p className="text-gray-400">List your product and start selling</p>
-        </motion.div>
+    <div className="min-h-screen p-6">
+      <div className="max-w-3xl mx-auto">
+        <div className="mb-6">
+          <h1 className="text-xl font-semibold mb-1">Create New Product</h1>
+          <p className="text-sm text-gray-600">List your product and start selling</p>
+        </div>
 
-        <motion.form
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.1 }}
-          onSubmit={handleSubmit}
-          className="space-y-6"
-        >
-          <div className="p-6 border rounded-xl" style={{ 
-            backgroundColor: 'var(--neutral)', 
-            borderColor: 'rgba(127, 255, 0, 0.2)' 
-          }}>
-            <h2 className="text-xl font-semibold mb-4 flex items-center gap-2">
-              <Package className="w-5 h-5" />
-              Basic Information
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div className="card p-4">
+            <h2 className="text-base font-semibold mb-3 flex items-center gap-2">
+              <Package className="w-4 h-4" /> Basic Information
             </h2>
             
-            <div className="space-y-4">
+            <div className="space-y-3">
               <div>
-                <label className="block text-sm font-medium mb-2">Product Title</label>
+                <label className="block text-sm mb-1">Product Title</label>
                 <input
                   type="text"
                   required
                   value={formData.title}
                   onChange={(e) => setFormData(prev => ({ ...prev, title: e.target.value }))}
-                  className="w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2"
-                  style={{ 
-                    backgroundColor: 'var(--primary)', 
-                    borderColor: 'var(--accent)', 
-                    color: 'var(--text-primary)',
-                    '--tw-ring-color': 'var(--accent)'
-                  }}
+                  className="w-full px-3 py-2 border rounded-lg text-sm"
                   placeholder="Premium Wireless Headphones"
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium mb-2">Description</label>
+                <label className="block text-sm mb-1">Description</label>
                 <textarea
                   required
-                  rows={4}
+                  rows={3}
                   value={formData.description}
                   onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
-                  className="w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2"
-                  style={{ 
-                    backgroundColor: 'var(--primary)', 
-                    borderColor: 'var(--accent)', 
-                    color: 'var(--text-primary)',
-                    '--tw-ring-color': 'var(--accent)'
-                  }}
+                  className="w-full px-3 py-2 border rounded-lg text-sm"
                   placeholder="Describe your product in detail..."
                 />
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-sm font-medium mb-2">Category</label>
+                  <label className="block text-sm mb-1">Category</label>
                   <select
                     required
                     value={formData.category}
                     onChange={(e) => setFormData(prev => ({ ...prev, category: e.target.value }))}
-                    className="w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2"
-                    style={{ 
-                      backgroundColor: 'var(--primary)', 
-                      borderColor: 'var(--accent)', 
-                      color: 'var(--text-primary)'
-                    }}
+                    className="w-full px-3 py-2 border rounded-lg text-sm"
                   >
                     <option value="">Select Category</option>
                     {productCategories.map(cat => (
@@ -194,16 +147,11 @@ export default function CreateProduct() {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium mb-2">Product Type</label>
+                  <label className="block text-sm mb-1">Product Type</label>
                   <select
                     value={formData.productType}
                     onChange={(e) => setFormData(prev => ({ ...prev, productType: e.target.value }))}
-                    className="w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2"
-                    style={{ 
-                      backgroundColor: 'var(--primary)', 
-                      borderColor: 'var(--accent)', 
-                      color: 'var(--text-primary)'
-                    }}
+                    className="w-full px-3 py-2 border rounded-lg text-sm"
                   >
                     <option value="Physical Product">Physical Product</option>
                     <option value="Digital Download">Digital Download</option>
@@ -214,222 +162,129 @@ export default function CreateProduct() {
             </div>
           </div>
 
-          <div className="p-6 border rounded-xl" style={{ 
-            backgroundColor: 'var(--neutral)', 
-            borderColor: 'rgba(127, 255, 0, 0.2)' 
-          }}>
-            <h2 className="text-xl font-semibold mb-4 flex items-center gap-2">
-              <DollarSign className="w-5 h-5" />
-              Pricing & Inventory
-            </h2>
+          <div className="card p-4">
+            <h2 className="text-base font-semibold mb-3">Pricing & Inventory</h2>
             
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="grid grid-cols-3 gap-3">
               <div>
-                <label className="block text-sm font-medium mb-2">Price (KES)</label>
+                <label className="block text-sm mb-1">Price (KES)</label>
                 <input
                   type="number"
                   required
                   min="1"
                   value={formData.price}
                   onChange={(e) => setFormData(prev => ({ ...prev, price: e.target.value }))}
-                  className="w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2"
-                  style={{ 
-                    backgroundColor: 'var(--primary)', 
-                    borderColor: 'var(--accent)', 
-                    color: 'var(--text-primary)'
-                  }}
+                  className="w-full px-3 py-2 border rounded-lg text-sm"
                   placeholder="2500"
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium mb-2">Compare Price (Optional)</label>
+                <label className="block text-sm mb-1">Compare Price</label>
                 <input
                   type="number"
                   min="1"
                   value={formData.comparePrice}
                   onChange={(e) => setFormData(prev => ({ ...prev, comparePrice: e.target.value }))}
-                  className="w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2"
-                  style={{ 
-                    backgroundColor: 'var(--primary)', 
-                    borderColor: 'var(--accent)', 
-                    color: 'var(--text-primary)'
-                  }}
+                  className="w-full px-3 py-2 border rounded-lg text-sm"
                   placeholder="3000"
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium mb-2">Stock Quantity</label>
+                <label className="block text-sm mb-1">Stock Quantity</label>
                 <input
                   type="number"
                   min="0"
                   value={formData.inventory}
                   onChange={(e) => setFormData(prev => ({ ...prev, inventory: e.target.value }))}
-                  className="w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2"
-                  style={{ 
-                    backgroundColor: 'var(--primary)', 
-                    borderColor: 'var(--accent)', 
-                    color: 'var(--text-primary)'
-                  }}
+                  className="w-full px-3 py-2 border rounded-lg text-sm"
                   placeholder="50"
                 />
               </div>
             </div>
           </div>
 
-          <div className="p-6 border rounded-xl" style={{ 
-            backgroundColor: 'var(--neutral)', 
-            borderColor: 'rgba(127, 255, 0, 0.2)' 
-          }}>
-            <h2 className="text-xl font-semibold mb-4 flex items-center gap-2">
-              <Truck className="w-5 h-5" />
-              Shipping
+          <div className="card p-4">
+            <h2 className="text-base font-semibold mb-3 flex items-center gap-2">
+              <Truck className="w-4 h-4" /> Shipping
             </h2>
             
             <div>
-              <label className="block text-sm font-medium mb-2">Shipping Time (days)</label>
+              <label className="block text-sm mb-1">Shipping Time (days)</label>
               <input
                 type="number"
                 min="1"
                 value={formData.shippingTime}
                 onChange={(e) => setFormData(prev => ({ ...prev, shippingTime: e.target.value }))}
-                className="w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2"
-                style={{ 
-                  backgroundColor: 'var(--primary)', 
-                  borderColor: 'var(--accent)', 
-                  color: 'var(--text-primary)'
-                }}
+                className="w-full px-3 py-2 border rounded-lg text-sm"
                 placeholder="3"
               />
             </div>
           </div>
 
-          <div className="p-6 border rounded-xl" style={{ 
-            backgroundColor: 'var(--neutral)', 
-            borderColor: 'rgba(127, 255, 0, 0.2)' 
-          }}>
-            <h2 className="text-xl font-semibold mb-4">Product Features</h2>
+          <div className="card p-4">
+            <h2 className="text-base font-semibold mb-3">Product Features</h2>
             
-            <div className="flex gap-2 mb-3">
+            <div className="flex gap-2 mb-2">
               <input
                 type="text"
                 value={featureInput}
                 onChange={(e) => setFeatureInput(e.target.value)}
                 onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), addFeature())}
-                className="flex-1 px-4 py-2 border rounded-lg focus:outline-none focus:ring-2"
-                style={{ 
-                  backgroundColor: 'var(--primary)', 
-                  borderColor: 'var(--accent)', 
-                  color: 'var(--text-primary)'
-                }}
+                className="flex-1 px-3 py-2 border rounded-lg text-sm"
                 placeholder="Add a feature"
               />
-              <motion.button
-                type="button"
-                onClick={addFeature}
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-                className="px-4 py-2 rounded-lg"
-                style={{ backgroundColor: 'var(--secondary)' }}
-              >
-                <Plus className="w-5 h-5" />
-              </motion.button>
+              <button type="button" onClick={addFeature} className="btn-secondary">
+                <Plus className="w-4 h-4" />
+              </button>
             </div>
 
             <div className="flex flex-wrap gap-2">
               {formData.features.map(feature => (
-                <motion.span
-                  key={feature}
-                  initial={{ opacity: 0, scale: 0.8 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  className="flex items-center gap-2 px-3 py-1 border rounded-full text-sm"
-                  style={{ 
-                    backgroundColor: 'rgba(127, 255, 0, 0.2)', 
-                    borderColor: 'rgba(127, 255, 0, 0.3)' 
-                  }}
-                >
+                <span key={feature} className="flex items-center gap-1 px-2 py-1 bg-emerald-50 text-emerald-700 rounded-full text-xs">
                   {feature}
-                  <button
-                    type="button"
-                    onClick={() => removeFeature(feature)}
-                    className="hover:text-red-400"
-                  >
+                  <button type="button" onClick={() => removeFeature(feature)} className="hover:text-red-500">
                     <X className="w-3 h-3" />
                   </button>
-                </motion.span>
+                </span>
               ))}
             </div>
           </div>
 
-          <div className="p-6 border rounded-xl" style={{ 
-            backgroundColor: 'var(--neutral)', 
-            borderColor: 'rgba(127, 255, 0, 0.2)' 
-          }}>
-            <h2 className="text-xl font-semibold mb-4">Tags</h2>
+          <div className="card p-4">
+            <h2 className="text-base font-semibold mb-3">Tags</h2>
             
-            <div className="flex gap-2 mb-3">
+            <div className="flex gap-2 mb-2">
               <input
                 type="text"
                 value={tagInput}
                 onChange={(e) => setTagInput(e.target.value)}
                 onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), addTag())}
-                className="flex-1 px-4 py-2 border rounded-lg focus:outline-none focus:ring-2"
-                style={{ 
-                  backgroundColor: 'var(--primary)', 
-                  borderColor: 'var(--accent)', 
-                  color: 'var(--text-primary)'
-                }}
+                className="flex-1 px-3 py-2 border rounded-lg text-sm"
                 placeholder="Add a tag"
               />
-              <motion.button
-                type="button"
-                onClick={addTag}
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-                className="px-4 py-2 rounded-lg"
-                style={{ backgroundColor: 'var(--secondary)' }}
-              >
-                <Plus className="w-5 h-5" />
-              </motion.button>
+              <button type="button" onClick={addTag} className="btn-secondary">
+                <Plus className="w-4 h-4" />
+              </button>
             </div>
 
             <div className="flex flex-wrap gap-2">
               {formData.tags.map(tag => (
-                <motion.span
-                  key={tag}
-                  initial={{ opacity: 0, scale: 0.8 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  className="flex items-center gap-2 px-3 py-1 border rounded-full text-sm"
-                  style={{ 
-                    backgroundColor: 'rgba(127, 255, 0, 0.2)', 
-                    borderColor: 'rgba(127, 255, 0, 0.3)' 
-                  }}
-                >
+                <span key={tag} className="flex items-center gap-1 px-2 py-1 bg-emerald-50 text-emerald-700 rounded-full text-xs">
                   {tag}
-                  <button
-                    type="button"
-                    onClick={() => removeTag(tag)}
-                    className="hover:text-red-400"
-                  >
+                  <button type="button" onClick={() => removeTag(tag)} className="hover:text-red-500">
                     <X className="w-3 h-3" />
                   </button>
-                </motion.span>
+                </span>
               ))}
             </div>
           </div>
 
-          <motion.button
-            type="submit"
-            disabled={loading}
-            whileHover={{ scale: 1.02 }}
-            whileTap={{ scale: 0.98 }}
-            className="w-full py-4 rounded-xl font-semibold disabled:opacity-50"
-            style={{ backgroundColor: 'var(--secondary)', color: 'var(--primary)' }}
-          >
+          <button type="submit" disabled={loading} className="w-full btn-primary py-3">
             {loading ? 'Creating Product...' : 'Create Product'}
-          </motion.button>
-        </motion.form>
+          </button>
+        </form>
       </div>
     </div>
   )

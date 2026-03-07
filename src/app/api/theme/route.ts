@@ -1,58 +1,46 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '../auth/[...nextauth]/route';
-import { prisma } from '@/lib/prisma';
+import { NextRequest, NextResponse } from 'next/server'
+import { getServerSession } from 'next-auth'
+import { authOptions } from '@/lib/auth'
+import { prisma } from '@/lib/prisma'
 
 export async function GET() {
   try {
-    const theme = await prisma.themeSettings.findFirst({
-      where: { isActive: true },
-    });
+    const session = await getServerSession(authOptions)
+    
+    if (!session?.user?.id) {
+      return NextResponse.json({ theme: 'default' })
+    }
 
-    return NextResponse.json(theme || {
-      primaryColor: '#3b82f6',
-      secondaryColor: '#10b981',
-      accentColor: '#8b5cf6',
-    });
+    const user = await prisma.user.findUnique({
+      where: { id: session.user.id },
+      select: { theme: true }
+    })
+
+    return NextResponse.json({ theme: user?.theme || 'default' })
   } catch (error) {
-    return NextResponse.json({
-      primaryColor: '#3b82f6',
-      secondaryColor: '#10b981',
-      accentColor: '#8b5cf6',
-    });
+    console.error('Theme GET error:', error)
+    return NextResponse.json({ theme: 'default' })
   }
 }
 
-export async function PUT(request: NextRequest) {
-  const session = await getServerSession(authOptions);
-  
-  if (!session?.user?.id) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-  }
-
-  if (session.user.userType !== 'ADMIN') {
-    return NextResponse.json({ error: 'Admin access required' }, { status: 403 });
-  }
-
+export async function POST(request: NextRequest) {
   try {
-    const { primaryColor, secondaryColor, accentColor } = await request.json();
+    const session = await getServerSession(authOptions)
+    
+    if (!session?.user?.id) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
 
-    await prisma.themeSettings.updateMany({
-      where: { isActive: true },
-      data: { isActive: false },
-    });
+    const { theme } = await request.json()
 
-    const theme = await prisma.themeSettings.create({
-      data: {
-        primaryColor,
-        secondaryColor,
-        accentColor,
-        isActive: true,
-      },
-    });
+    await prisma.user.update({
+      where: { id: session.user.id },
+      data: { theme }
+    })
 
-    return NextResponse.json(theme);
+    return NextResponse.json({ success: true })
   } catch (error) {
-    return NextResponse.json({ error: 'Failed to update theme' }, { status: 500 });
+    console.error('Theme POST error:', error)
+    return NextResponse.json({ error: 'Failed to save theme' }, { status: 500 })
   }
 }

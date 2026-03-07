@@ -1,1 +1,95 @@
-/**\n * Jest Setup File\n * \n * Global test setup and configuration:\n * - Testing Library DOM matchers\n * - Mock implementations\n * - Global test utilities\n */\n\nimport '@testing-library/jest-dom'\n\n// Mock Next.js router\njest.mock('next/navigation', () => ({\n  useRouter() {\n    return {\n      push: jest.fn(),\n      replace: jest.fn(),\n      prefetch: jest.fn(),\n      back: jest.fn(),\n      forward: jest.fn(),\n      refresh: jest.fn()\n    }\n  },\n  usePathname() {\n    return '/'\n  },\n  useSearchParams() {\n    return new URLSearchParams()\n  }\n}))\n\n// Mock NextAuth\njest.mock('next-auth/react', () => ({\n  useSession() {\n    return {\n      data: {\n        user: {\n          id: '1',\n          name: 'Test User',\n          email: 'test@example.com',\n          userType: 'CLIENT'\n        }\n      },\n      status: 'authenticated'\n    }\n  },\n  signIn: jest.fn(),\n  signOut: jest.fn(),\n  SessionProvider: ({ children }) => children\n}))\n\n// Mock Framer Motion\njest.mock('framer-motion', () => ({\n  motion: {\n    div: 'div',\n    button: 'button',\n    nav: 'nav',\n    section: 'section',\n    aside: 'aside'\n  },\n  AnimatePresence: ({ children }) => children\n}))\n\n// Mock next-themes\njest.mock('next-themes', () => ({\n  useTheme() {\n    return {\n      theme: 'dark',\n      setTheme: jest.fn()\n    }\n  },\n  ThemeProvider: ({ children }) => children\n}))\n\n// Global test utilities\nglobal.ResizeObserver = jest.fn().mockImplementation(() => ({\n  observe: jest.fn(),\n  unobserve: jest.fn(),\n  disconnect: jest.fn()\n}))\n\n// Mock window.matchMedia\nObject.defineProperty(window, 'matchMedia', {\n  writable: true,\n  value: jest.fn().mockImplementation(query => ({\n    matches: false,\n    media: query,\n    onchange: null,\n    addListener: jest.fn(),\n    removeListener: jest.fn(),\n    addEventListener: jest.fn(),\n    removeEventListener: jest.fn(),\n    dispatchEvent: jest.fn()\n  }))\n})
+/**
+ * Jest Setup File
+ * 
+ * Global test setup and configuration:
+ * - Testing Library DOM matchers
+ * - Mock implementations
+ * - Global test utilities
+ */
+
+import '@testing-library/jest-dom'
+
+// Mock Next.js router
+jest.mock('next/navigation', () => ({
+  useRouter() {
+    return {
+      push: jest.fn(),
+      replace: jest.fn(),
+      prefetch: jest.fn(),
+      back: jest.fn(),
+      forward: jest.fn(),
+      refresh: jest.fn()
+    }
+  },
+  usePathname() {
+    return '/'
+  },
+  useSearchParams() {
+    return new URLSearchParams()
+  }
+}))
+
+// Mock NextAuth
+jest.mock('next-auth/react', () => ({
+  useSession() {
+    return {
+      data: {
+        user: {
+          id: '1',
+          name: 'Test User',
+          email: 'test@example.com',
+          userType: 'CLIENT'
+        }
+      },
+      status: 'authenticated'
+    }
+  },
+  signIn: jest.fn(),
+  signOut: jest.fn(),
+  SessionProvider: ({ children }) => children
+}))
+
+// Mock Framer Motion
+jest.mock('framer-motion', () => ({
+  motion: {
+    div: 'div',
+    button: 'button',
+    nav: 'nav',
+    section: 'section',
+    aside: 'aside'
+  },
+  AnimatePresence: ({ children }) => children
+}))
+
+// Mock next-themes
+jest.mock('next-themes', () => ({
+  useTheme() {
+    return {
+      theme: 'dark',
+      setTheme: jest.fn()
+    }
+  },
+  ThemeProvider: ({ children }) => children
+}))
+
+// Global test utilities
+global.ResizeObserver = jest.fn().mockImplementation(() => ({
+  observe: jest.fn(),
+  unobserve: jest.fn(),
+  disconnect: jest.fn()
+}))
+
+// Mock window.matchMedia
+Object.defineProperty(window, 'matchMedia', {
+  writable: true,
+  value: jest.fn().mockImplementation(query => ({
+    matches: false,
+    media: query,
+    onchange: null,
+    addListener: jest.fn(),
+    removeListener: jest.fn(),
+    addEventListener: jest.fn(),
+    removeEventListener: jest.fn(),
+    dispatchEvent: jest.fn()
+  }))
+})

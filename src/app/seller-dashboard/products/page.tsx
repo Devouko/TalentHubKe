@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { motion } from 'motion/react'
+import { motion } from 'framer-motion'
 import { useSession } from 'next-auth/react'
 import Link from 'next/link'
 import { 
@@ -28,7 +28,7 @@ export default function ProductsManagement() {
     try {
       const response = await fetch(`/api/products?sellerId=${session?.user?.id}`)
       const data = await response.json()
-      setProducts(data)
+      setProducts(Array.isArray(data) ? data : (data.products || []))
     } catch (error) {
       console.error('Error fetching products:', error)
     } finally {
@@ -36,16 +36,29 @@ export default function ProductsManagement() {
     }
   }
 
-  const getProductStatus = (product) => {
+  const getProductStatus = (product: any) => {
     if (!product.isActive) return 'inactive'
-    // Simulate stock levels for demo
-    const stock = Math.floor(Math.random() * 50)
+    // Use actual stock if available, otherwise simulate
+    const stock = product.stock !== undefined ? product.stock : Math.floor(Math.random() * 50)
     if (stock === 0) return 'out-of-stock'
     if (stock < 10) return 'low-stock'
     return 'active'
   }
 
-  const filteredProducts = products.filter(product => {
+  const handleDelete = async (productId: string) => {
+    if (!confirm('Are you sure you want to delete this product?')) return
+    
+    try {
+      const res = await fetch(`/api/products?id=${productId}`, { method: 'DELETE' })
+      if (res.ok) {
+        setProducts(products.filter((p: any) => p.id !== productId))
+      }
+    } catch (error) {
+      console.error('Error deleting product:', error)
+    }
+  }
+
+  const filteredProducts = products.filter((product: any) => {
     const matchesSearch = product.title.toLowerCase().includes(searchTerm.toLowerCase())
     const status = getProductStatus(product)
     const matchesStatus = statusFilter === 'all' || status === statusFilter
@@ -98,21 +111,21 @@ export default function ProductsManagement() {
               },
               { 
                 label: 'Active Products', 
-                value: products.filter(p => p.isActive).length, 
+                value: products.filter((p: any) => p.isActive).length, 
                 icon: TrendingUp, 
                 color: 'text-yellow-400',
                 bg: 'bg-yellow-500/10'
               },
               { 
                 label: 'Total Revenue', 
-                value: `KES ${(products.reduce((sum, p) => sum + (p.price * (p.orderCount || 0)), 0)).toLocaleString()}`, 
+                value: `KES ${(products.reduce((sum, p: any) => sum + (p.price * (p.orderCount || 0)), 0)).toLocaleString()}`, 
                 icon: DollarSign, 
                 color: 'text-yellow-400',
                 bg: 'bg-yellow-500/10'
               },
               { 
                 label: 'Avg Rating', 
-                value: products.length > 0 ? (products.reduce((sum, p) => sum + (p.rating || 0), 0) / products.length).toFixed(1) : '0.0', 
+                value: products.length > 0 ? (products.reduce((sum, p: any) => sum + (p.rating || 0), 0) / products.length).toFixed(1) : '0.0', 
                 icon: Star, 
                 color: 'text-green-400',
                 bg: 'bg-green-500/10'
@@ -168,9 +181,9 @@ export default function ProductsManagement() {
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {filteredProducts.map(product => {
+            {filteredProducts.map((product: any) => {
               const status = getProductStatus(product)
-              const stock = Math.floor(Math.random() * 50) // Simulated stock
+              const stock = product.stock !== undefined ? product.stock : Math.floor(Math.random() * 50)
               
               return (
                 <motion.div
@@ -241,17 +254,31 @@ export default function ProductsManagement() {
                       </div>
                     </div>
 
-                    {/* Action Buttons */}
                     <div className="flex gap-2">
-                      <Button variant="outline" size="sm" className="flex-1 border-gray-600 hover:bg-gray-700">
+                      <Button 
+                        variant="outline" 
+                        size="sm" 
+                        className="flex-1 border-gray-600 hover:bg-gray-700"
+                        onClick={() => router.push(`/products/${product.id}`)}
+                      >
                         <Eye className="w-4 h-4 mr-2" />
                         View
                       </Button>
-                      <Button variant="outline" size="sm" className="flex-1 border-gray-600 hover:bg-gray-700">
+                      <Button 
+                        variant="outline" 
+                        size="sm" 
+                        className="flex-1 border-gray-600 hover:bg-gray-700"
+                        onClick={() => router.push(`/admin/products/${product.id}/edit`)}
+                      >
                         <Edit className="w-4 h-4 mr-2" />
                         Edit
                       </Button>
-                      <Button variant="outline" size="sm" className="border-red-600 text-red-400 hover:bg-red-600/10">
+                      <Button 
+                        variant="outline" 
+                        size="sm" 
+                        className="border-red-600 text-red-400 hover:bg-red-600/10"
+                        onClick={() => handleDelete(product.id)}
+                      >
                         <Trash2 className="w-4 h-4" />
                       </Button>
                     </div>

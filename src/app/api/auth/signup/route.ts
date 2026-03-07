@@ -1,13 +1,19 @@
 import { NextResponse } from 'next/server';
 import bcrypt from 'bcryptjs';
 import { prisma } from '@/lib/prisma';
+import { randomUUID } from 'crypto';
+import { handleApiError, apiResponse } from '@/lib/api-utils';
 
 export async function POST(request: Request) {
   try {
     const { email, password, name, userType } = await request.json();
 
+    if (!email || !password) {
+      return NextResponse.json({ error: 'Email and password are required' }, { status: 400 });
+    }
+
     // Check if user already exists
-    const existingUser = await prisma.user.findUnique({
+    const existingUser = await prisma.users.findUnique({
       where: { email }
     });
 
@@ -19,26 +25,28 @@ export async function POST(request: Request) {
     const hashedPassword = await bcrypt.hash(password, 12);
 
     // Create user with specified type (including ADMIN)
-    const user = await prisma.user.create({
+    const user = await prisma.users.create({
       data: {
+        id: randomUUID(),
         email,
         password: hashedPassword,
-        name,
+        name: name || null,
         userType: userType || 'CLIENT',
         isVerified: userType === 'ADMIN' ? true : false,
-        sellerStatus: userType === 'FREELANCER' ? 'APPROVED' : 'NOT_APPLIED'
+        sellerStatus: userType === 'FREELANCER' ? 'APPROVED' : 'NOT_APPLIED',
+        createdAt: new Date(),
+        updatedAt: new Date()
       }
     });
 
-    return NextResponse.json({
+    return apiResponse({
       id: user.id,
       email: user.email,
       name: user.name,
       userType: user.userType
-    }, { status: 201 });
+    }, 201);
 
   } catch (error) {
-    console.error('Signup error:', error);
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    return handleApiError(error);
   }
 }

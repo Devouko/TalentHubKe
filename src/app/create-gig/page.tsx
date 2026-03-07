@@ -1,5 +1,7 @@
 'use client'
 
+import { CATEGORY_OPTIONS } from '@/constants/categories'
+
 import { useState } from 'react'
 import { useSession } from 'next-auth/react'
 import { Plus, Upload, DollarSign, Clock } from 'lucide-react'
@@ -12,14 +14,14 @@ export default function CreateGig() {
   const [formData, setFormData] = useState({
     title: '',
     description: '',
-    category: 'design',
+    category: 'Accounts',
     price: '',
     deliveryTime: '3',
     tags: '',
     requirements: ''
   })
 
-  const categories = ['design', 'development', 'writing', 'marketing', 'video', 'other']
+  const categories = CATEGORY_OPTIONS
   const deliveryOptions = [
     { value: '1', label: '1 day' },
     { value: '3', label: '3 days' },
@@ -49,7 +51,7 @@ export default function CreateGig() {
         setFormData({
           title: '',
           description: '',
-          category: 'design',
+          category: 'Accounts',
           price: '',
           deliveryTime: '3',
           tags: '',

@@ -1,79 +1,40 @@
-import { NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '../../auth/[...nextauth]/route';
-import { prisma } from '@/lib/prisma';
+import { NextRequest, NextResponse } from 'next/server'
+import { getServerSession } from 'next-auth'
+import { authOptions } from '@/lib/auth'
+import { prisma } from '@/lib/prisma'
 
-export async function GET() {
+export async function GET(req: NextRequest) {
   try {
-    const session = await getServerSession(authOptions);
-    
-    if (!session || session.user.userType !== 'ADMIN') {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    const session = await getServerSession(authOptions)
+    if (!session?.user?.id || session.user.userType !== 'ADMIN') {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    const escrowTransactions = await prisma.order.findMany({
-      where: {
-        status: { in: ['PENDING', 'IN_PROGRESS', 'DELIVERED'] }
-      },
+    const transactions = await prisma.escrow_transactions.findMany({
       include: {
-        buyer: { select: { name: true, email: true } },
-        gig: { 
-          select: { 
-            title: true, 
-            seller: { select: { name: true, email: true } }
-          } 
+        users_escrow_transactions_buyerIdTousers: {
+          select: { id: true, name: true, email: true }
+        },
+        users_escrow_transactions_sellerIdTousers: {
+          select: { id: true, name: true, email: true }
         }
       },
-      orderBy: { createdAt: 'desc' },
-      take: 50
-    });
+      orderBy: { createdAt: 'desc' }
+    })
 
-    const escrowSummary = await prisma.order.groupBy({
-      by: ['status'],
-      _sum: { totalAmount: true },
-      _count: true,
-      where: {
-        status: { in: ['PENDING', 'IN_PROGRESS', 'DELIVERED', 'DISPUTED'] }
-      }
-    });
+    const formatted = transactions.map(tx => ({
+      id: tx.id,
+      amount: tx.amount,
+      status: tx.status.toLowerCase(),
+      buyer: tx.users_escrow_transactions_buyerIdTousers,
+      seller: tx.users_escrow_transactions_sellerIdTousers,
+      orderId: tx.orderId,
+      createdAt: tx.createdAt
+    }))
 
-    return NextResponse.json({
-      transactions: escrowTransactions,
-      summary: escrowSummary
-    });
+    return NextResponse.json(formatted)
   } catch (error) {
-    console.error('Error fetching escrow data:', error);
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
-  }
-}
-
-export async function POST(request: Request) {
-  try {
-    const session = await getServerSession(authOptions);
-    
-    if (!session || session.user.userType !== 'ADMIN') {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
-    const { orderId, action } = await request.json();
-
-    let updateData = {};
-    if (action === 'release') {
-      updateData = { status: 'COMPLETED' };
-    } else if (action === 'dispute') {
-      updateData = { status: 'DISPUTED' };
-    } else if (action === 'cancel') {
-      updateData = { status: 'CANCELLED' };
-    }
-
-    const updatedOrder = await prisma.order.update({
-      where: { id: orderId },
-      data: updateData
-    });
-
-    return NextResponse.json(updatedOrder);
-  } catch (error) {
-    console.error('Error updating escrow:', error);
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    console.error('Error fetching escrow transactions:', error)
+    return NextResponse.json({ error: 'Failed to fetch transactions' }, { status: 500 })
   }
 }

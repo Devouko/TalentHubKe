@@ -1,48 +1,61 @@
-const express = require('express')
-const http = require('http')
-const socketIo = require('socket.io')
-const cors = require('cors')
+const { createServer } = require('http')
+const { Server } = require('socket.io')
+const next = require('next')
 
-const app = express()
-const server = http.createServer(app)
-const io = socketIo(server, {
-  cors: {
-    origin: "http://localhost:3000",
-    methods: ["GET", "POST"]
-  }
-})
+const dev = process.env.NODE_ENV !== 'production'
+const hostname = 'localhost'
+const port = 3001
 
-app.use(cors())
+const app = next({ dev, hostname, port })
+const handler = app.getRequestHandler()
 
-const messages = []
-
-io.on('connection', (socket) => {
-  console.log('User connected:', socket.id)
-
-  socket.on('join', (data) => {
-    socket.userId = data.userId
-    socket.userName = data.userName
-    socket.emit('previousMessages', messages)
-  })
-
-  socket.on('sendMessage', (data) => {
-    const message = {
-      id: Date.now().toString(),
-      text: data.text,
-      userId: data.userId,
-      userName: data.userName,
-      timestamp: new Date()
+app.prepare().then(() => {
+  const httpServer = createServer(handler)
+  
+  const io = new Server(httpServer, {
+    cors: {
+      origin: "http://localhost:3000",
+      methods: ["GET", "POST"]
     }
-    messages.push(message)
-    io.emit('message', message)
   })
 
-  socket.on('disconnect', () => {
-    console.log('User disconnected:', socket.id)
-  })
-})
+  const users = new Map()
 
-const PORT = process.env.PORT || 3001
-server.listen(PORT, () => {
-  console.log(`Socket.IO server running on port ${PORT}`)
+  io.on('connection', (socket) => {
+    console.log('User connected:', socket.id)
+
+    socket.on('join', (userId) => {
+      users.set(userId, socket.id)
+      socket.userId = userId
+      console.log(`User ${userId} joined`)
+    })
+
+    socket.on('send_message', (data) => {
+      const { receiverId, message, senderId, orderId } = data
+      const receiverSocketId = users.get(receiverId)
+      
+      if (receiverSocketId) {
+        io.to(receiverSocketId).emit('receive_message', {
+          message,
+          senderId,
+          orderId,
+          timestamp: new Date().toISOString()
+        })
+      }
+      
+      socket.emit('message_sent', { success: true })
+    })
+
+    socket.on('disconnect', () => {
+      if (socket.userId) {
+        users.delete(socket.userId)
+        console.log(`User ${socket.userId} disconnected`)
+      }
+    })
+  })
+
+  httpServer.listen(port, (err) => {
+    if (err) throw err
+    console.log(`> Ready on http://${hostname}:${port}`)
+  })
 })

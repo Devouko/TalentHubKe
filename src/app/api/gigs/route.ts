@@ -1,58 +1,128 @@
-import { NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '../auth/[...nextauth]/route';
-import { prisma } from '@/lib/prisma';
+import { NextRequest, NextResponse } from 'next/server'
+import { prisma } from '@/lib/prisma'
+import { ApiService } from '@/lib/api.service'
+import { sanitizeCategory } from '@/utils/categoryValidation'
 
-export async function GET() {
-  try {
-    const gigs = await prisma.gig.findMany({
-      include: {
-        seller: {
-          select: {
-            name: true,
-            profileImage: true
-          }
-        }
-      },
-      where: {
-        isActive: true
-      },
-      orderBy: {
-        createdAt: 'desc'
-      }
-    });
-    return NextResponse.json(gigs);
-  } catch (error) {
-    return NextResponse.json({ error: 'Failed to fetch gigs' }, { status: 500 });
-  }
-}
-
-export async function POST(request: Request) {
-  try {
-    const session = await getServerSession(authOptions);
+export async function GET(request: NextRequest) {
+  return ApiService.handleRequest(async () => {
+    const { searchParams } = new URL(request.url)
+    const id = searchParams.get('id')
+    const sellerId = searchParams.get('sellerId')
     
-    if (!session) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    if (id) {
+      const gig = await prisma.gigs.findUnique({
+        where: { id },
+        include: {
+          users: { select: { id: true, name: true, email: true } }
+        }
+      })
+      
+      if (!gig) throw new Error('Gig not found')
+      return gig
     }
 
-    const data = await request.json();
+    let whereClause: any = { isActive: true }
+    if (sellerId) {
+      whereClause.sellerId = sellerId
+      // For seller dashboard, maybe show inactive too? 
+      // Existing API always filtered by isActive: true
+    }
     
-    const gig = await prisma.gig.create({
-      data: {
-        title: data.title,
-        description: data.description,
-        price: data.price,
-        deliveryTime: data.deliveryTime,
-        category: data.category,
-        tags: data.tags || [],
-        images: data.images || [],
-        sellerId: session.user.id
-      }
-    });
+    return await prisma.gigs.findMany({
+      where: whereClause,
+      include: {
+        users: { select: { id: true, name: true, email: true } }
+      },
+      orderBy: { createdAt: 'desc' }
+    })
+  }, 'Failed to fetch gigs')
+}
 
-    return NextResponse.json(gig, { status: 201 });
-  } catch (error) {
-    console.error('Error creating gig:', error);
-    return NextResponse.json({ error: 'Failed to create gig' }, { status: 500 });
-  }
+export async function POST(request: NextRequest) {
+  return ApiService.handleRequest(async () => {
+    const session = await ApiService.validateAuth(['FREELANCER', 'AGENCY', 'ADMIN'])
+    const data = await request.json()
+    
+    ApiService.validateRequired(data, ['title', 'description', 'category', 'price'])
+    
+    if (ApiService.parseNumber(data.price) <= 0) {
+      throw new Error('Price must be greater than 0')
+    }
+    
+    const gig = await prisma.gigs.create({
+      data: {
+        title: ApiService.sanitizeString(data.title),
+        description: ApiService.sanitizeString(data.description),
+        category: sanitizeCategory(data.category),
+        subcategory: ApiService.sanitizeString(data.subcategory) || null,
+        price: ApiService.parseNumber(data.price),
+        deliveryTime: ApiService.parseNumber(data.deliveryTime, 3),
+        tags: ApiService.parseArray(data.tags),
+        images: ApiService.parseArray(data.images),
+        sellerId: session.user.id,
+        isActive: true
+      },
+      include: {
+        users: { select: { id: true, name: true, email: true } }
+      }
+    })
+    
+    return { success: true, gig }
+  }, 'Failed to create gig')
+}
+
+export async function PUT(request: NextRequest) {
+  return ApiService.handleRequest(async () => {
+    const session = await ApiService.validateAuth()
+    const { searchParams } = new URL(request.url)
+    const id = searchParams.get('id')
+    
+    if (!id) throw new Error('Gig ID is required')
+    
+    const existingGig = await prisma.gigs.findUnique({
+      where: { id },
+      select: { sellerId: true }
+    })
+    
+    if (!existingGig) throw new Error('Gig not found')
+    
+    if (existingGig.sellerId !== session.user.id && session.user.userType !== 'ADMIN') {
+      throw new Error('Insufficient permissions')
+    }
+    
+    const data = await request.json()
+    
+    return await prisma.gigs.update({
+      where: { id },
+      data,
+      include: {
+        users: { select: { id: true, name: true, email: true } }
+      }
+    })
+  }, 'Failed to update gig')
+}
+
+export async function DELETE(request: NextRequest) {
+  return ApiService.handleRequest(async () => {
+    const session = await ApiService.validateAuth()
+    const { searchParams } = new URL(request.url)
+    const id = searchParams.get('id')
+    
+    if (!id) throw new Error('Gig ID is required')
+    
+    const existingGig = await prisma.gigs.findUnique({
+      where: { id },
+      select: { sellerId: true }
+    })
+    
+    if (!existingGig) throw new Error('Gig not found')
+    
+    if (existingGig.sellerId !== session.user.id && session.user.userType !== 'ADMIN') {
+      throw new Error('Insufficient permissions')
+    }
+
+    await prisma.gigs.delete({ where: { id } })
+
+    return { message: 'Gig deleted successfully' }
+  }, 'Failed to delete gig')
 }

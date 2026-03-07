@@ -1,40 +1,33 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getServerSession } from 'next-auth'
+import { prisma } from '../../../../../lib/prisma'
 
 export async function POST(request: NextRequest) {
   try {
-    const session = await getServerSession()
-    if (!session?.user?.id) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    const { orderId, phoneNumber, amount } = await request.json()
+
+    // Simulate M-Pesa payment processing
+    const paymentData = {
+      orderId,
+      phoneNumber,
+      amount,
+      status: 'SUCCESS',
+      transactionId: `MP${Date.now()}`,
+      timestamp: new Date().toISOString()
     }
 
-    const body = await request.json()
-    const { amount, phoneNumber, accountReference, transactionDesc } = body
-
-    const phoneRegex = /^254[0-9]{9}$/
-    if (!phoneRegex.test(phoneNumber)) {
-      return NextResponse.json({ 
-        error: 'Invalid phone number. Use format: 254XXXXXXXXX' 
-      }, { status: 400 })
-    }
-
-    const mockResponse = {
-      merchantRequestId: `MR${Date.now()}`,
-      checkoutRequestId: `CR${Date.now()}`,
-      responseCode: '0',
-      responseDescription: 'Success. Request accepted for processing',
-      customerMessage: 'Success. Request accepted for processing'
-    }
+    // Update order status in database
+    await prisma.order.update({
+      where: { id: orderId },
+      data: { status: 'COMPLETED' }
+    })
 
     return NextResponse.json({
       success: true,
-      message: 'M-Pesa payment initiated successfully',
-      data: mockResponse
+      message: 'Payment processed successfully',
+      transaction: paymentData
     })
-
   } catch (error) {
-    return NextResponse.json({ 
-      error: 'Payment processing failed' 
-    }, { status: 500 })
+    console.error('Payment error:', error)
+    return NextResponse.json({ error: 'Payment failed' }, { status: 500 })
   }
 }

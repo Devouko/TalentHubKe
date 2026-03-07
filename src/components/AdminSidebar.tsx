@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { useSession } from 'next-auth/react'
-import { Settings, Palette, MessageSquare, Users, BarChart3, X } from 'lucide-react'
+import { Settings, Palette, MessageSquare, Users, BarChart3, X, Sliders, Package } from 'lucide-react'
 import Link from 'next/link'
 
 export default function AdminSidebar() {
@@ -39,6 +39,11 @@ export default function AdminSidebar() {
               {isOpen && <span>Users</span>}
             </Link>
 
+            <Link href="/admin/products" className="flex items-center gap-3 p-3 rounded-lg hover:bg-gray-800 text-gray-300 hover:text-white">
+              <Package className="w-5 h-5" />
+              {isOpen && <span>Products</span>}
+            </Link>
+
             <button 
               onClick={() => setShowColorPicker(!showColorPicker)}
               className="w-full flex items-center gap-3 p-3 rounded-lg hover:bg-gray-800 text-gray-300 hover:text-white"
@@ -50,6 +55,11 @@ export default function AdminSidebar() {
             <Link href="/admin/messages" className="flex items-center gap-3 p-3 rounded-lg hover:bg-gray-800 text-gray-300 hover:text-white">
               <MessageSquare className="w-5 h-5" />
               {isOpen && <span>Messages</span>}
+            </Link>
+
+            <Link href="/admin/dynamic-settings" className="flex items-center gap-3 p-3 rounded-lg hover:bg-gray-800 text-gray-300 hover:text-white">
+              <Sliders className="w-5 h-5" />
+              {isOpen && <span>Dynamic Settings</span>}
             </Link>
           </nav>
 

@@ -1,76 +1,41 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { prisma } from '../../../../lib/prisma'
 import { getServerSession } from 'next-auth'
-import { prisma } from '@/lib/prisma'
+import { authOptions } from '@/lib/auth'
 
-export async function POST(request: NextRequest) {
+export async function PUT(request: NextRequest) {
   try {
-    const session = await getServerSession()
-    if (!session?.user?.id) {
+    const session = await getServerSession(authOptions)
+    if (!session?.user?.id || session.user.userType !== 'ADMIN') {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    const body = await request.json()
-    const { businessName, description, skills, experience, portfolio } = body
+    const { searchParams } = new URL(request.url)
+    const id = searchParams.get('id')
+    const { status } = await request.json()
 
-    // Check if user already has an application
-    const existingApplication = await prisma.sellerApplication.findUnique({
-      where: { userId: session.user.id }
-    })
-
-    if (existingApplication) {
-      return NextResponse.json({ error: 'Application already exists' }, { status: 400 })
+    if (!id || !status) {
+      return NextResponse.json({ error: 'ID and status required' }, { status: 400 })
     }
 
-    const application = await prisma.sellerApplication.create({
-      data: {
-        businessName,
-        description,
-        skills: skills || [],
-        experience,
-        portfolio: portfolio || [],
-        userId: session.user.id
-      }
+    // Update application and user status
+    const application = await prisma.sellerApplication.update({
+      where: { id },
+      data: { status },
+      include: { user: true }
     })
 
-    // Update user seller status
-    await prisma.user.update({
-      where: { id: session.user.id },
-      data: { sellerStatus: 'PENDING' }
-    })
+    // If approved, update user type to SELLER
+    if (status === 'APPROVED') {
+      await prisma.user.update({
+        where: { id: application.userId },
+        data: { userType: 'SELLER' }
+      })
+    }
 
-    return NextResponse.json(application, { status: 201 })
+    return NextResponse.json({ success: true, application })
   } catch (error) {
-    return NextResponse.json({ error: 'Failed to submit application' }, { status: 500 })
-  }
-}
-
-export async function GET(request: NextRequest) {
-  try {
-    const session = await getServerSession()
-    if (!session?.user?.id) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
-
-    // Check if user is admin
-    const user = await prisma.user.findUnique({
-      where: { id: session.user.id }
-    })
-
-    if (user?.userType !== 'ADMIN') {
-      return NextResponse.json({ error: 'Admin access required' }, { status: 403 })
-    }
-
-    const applications = await prisma.sellerApplication.findMany({
-      include: {
-        user: {
-          select: { id: true, name: true, email: true }
-        }
-      },
-      orderBy: { createdAt: 'desc' }
-    })
-
-    return NextResponse.json(applications)
-  } catch (error) {
-    return NextResponse.json({ error: 'Failed to fetch applications' }, { status: 500 })
+    console.error('Application update error:', error)
+    return NextResponse.json({ error: 'Failed to update application' }, { status: 500 })
   }
 }

@@ -1,35 +1,53 @@
-import { NextRequest, NextResponse } from 'next/server'
-import { getServerSession } from 'next-auth'
-import { authOptions } from '../../auth/[...nextauth]/route'
+import { NextRequest } from 'next/server'
 import { prisma } from '@/lib/prisma'
+import { handleApiError, requireAdmin, apiResponse } from '@/lib/api-utils'
 
 export async function GET() {
   try {
-    const session = await getServerSession(authOptions)
-    
-    if (!session || session.user?.userType !== 'ADMIN') {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
+    await requireAdmin()
 
-    const users = await prisma.user.findMany({
+    const users = await prisma.users.findMany({
       select: {
         id: true,
-        email: true,
         name: true,
+        email: true,
         userType: true,
         isVerified: true,
-        sellerStatus: true,
+        createdAt: true,
         balance: true,
-        createdAt: true
+        phoneNumber: true,
+        county: true,
+        sellerStatus: true,
+        sellerRating: true,
+        _count: {
+          select: {
+            orders: true,
+            gigs: true,
+            products: true
+          }
+        }
       },
-      orderBy: {
-        createdAt: 'desc'
-      }
+      orderBy: { createdAt: 'desc' }
     })
 
-    return NextResponse.json(users)
+    return apiResponse(users)
   } catch (error) {
-    console.error('Error fetching users:', error)
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
+    return handleApiError(error)
+  }
+}
+
+export async function POST(request: NextRequest) {
+  try {
+    await requireAdmin()
+
+    const { email, name, userType, password } = await request.json()
+    
+    const user = await prisma.users.create({
+      data: { email, name, userType, password, id: crypto.randomUUID() }
+    })
+
+    return apiResponse(user)
+  } catch (error) {
+    return handleApiError(error)
   }
 }

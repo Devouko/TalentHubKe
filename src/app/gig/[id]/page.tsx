@@ -1,7 +1,7 @@
 'use client'
 
-import { useState } from 'react'
-import { motion } from 'motion/react'
+import { useState, useEffect } from 'react'
+import { motion } from 'framer-motion'
 import { useParams } from 'next/navigation'
 import Link from 'next/link'
 import { 
@@ -9,9 +9,10 @@ import {
   CheckCircle, ArrowLeft, ZoomIn, User, Award,
   MessageCircle, Shield, Truck
 } from 'lucide-react'
+import { ReviewSectionComplete } from '@/components/reviews'
+import { useSession } from 'next-auth/react'
 
-// Mock gig data - in real app, fetch from API
-const mockGig = {
+const defaultGig = {
   id: '1',
   title: 'Professional Logo Design with Brand Guidelines',
   seller: {
@@ -108,10 +109,54 @@ I work with businesses across Kenya and globally, understanding local market pre
 
 export default function GigDetail() {
   const params = useParams()
+  const { data: session } = useSession()
+  const [gig, setGig] = useState<any>(null)
+  const [loading, setLoading] = useState(true)
   const [selectedImage, setSelectedImage] = useState(0)
   const [selectedPackage, setSelectedPackage] = useState(1)
   const [showImageModal, setShowImageModal] = useState(false)
   const [isLiked, setIsLiked] = useState(false)
+
+  useEffect(() => {
+    if (params.id) {
+      fetchGig()
+    }
+  }, [params.id])
+
+  const fetchGig = async () => {
+    try {
+      const response = await fetch(`/api/gigs?id=${params.id}`)
+      if (response.ok) {
+        const data = await response.json()
+        setGig(data)
+      }
+    } catch (error) {
+      console.error('Error fetching gig:', error)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-4 border-slate-100 border-t-blue-600"></div>
+      </div>
+    )
+  }
+
+  if (!gig) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <h2 className="text-2xl font-bold mb-2">Gig not found</h2>
+          <Link href="/browse-gigs" className="text-blue-600 hover:underline">Browse other gigs</Link>
+        </div>
+      </div>
+    )
+  }
+
+  const mockGig = gig
 
   return (
     <div className="min-h-screen bg-background text-foreground">
@@ -137,7 +182,7 @@ export default function GigDetail() {
             <div className="space-y-4">
               <div className="relative group">
                 <img 
-                  src={mockGig.images[selectedImage]} 
+                  src={mockGig.images?.[selectedImage] || '/placeholder.png'} 
                   alt={mockGig.title}
                   className="w-full h-96 object-cover rounded-xl cursor-pointer"
                   onClick={() => setShowImageModal(true)}
@@ -151,7 +196,7 @@ export default function GigDetail() {
               </div>
               
               <div className="flex gap-2 overflow-x-auto">
-                {mockGig.images.map((image, i) => (
+                {mockGig.images?.map((image, i) => (
                   <button
                     key={i}
                     onClick={() => setSelectedImage(i)}
@@ -171,19 +216,16 @@ export default function GigDetail() {
               
               <div className="flex items-center gap-4 mb-6">
                 <div className="flex items-center gap-3">
-                  <img 
-                    src={mockGig.seller.avatar} 
-                    alt={mockGig.seller.name}
-                    className="w-12 h-12 rounded-full"
-                  />
+                  <div className="w-12 h-12 rounded-full bg-blue-600 flex items-center justify-center text-white font-bold">
+                    {mockGig.users?.name?.[0] || 'U'}
+                  </div>
                   <div>
-                    <div className="font-semibold">{mockGig.seller.name}</div>
+                    <div className="font-semibold">{mockGig.users?.name || 'Seller'}</div>
                     <div className="flex items-center gap-2 text-sm text-muted-foreground">
                       <Star className="w-4 h-4 fill-yellow-400 text-yellow-400" />
-                      <span>{mockGig.seller.rating}</span>
-                      <span>({mockGig.seller.reviews} reviews)</span>
+                      <span>{mockGig.rating || 5.0}</span>
                       <span className="px-2 py-1 bg-primary/10 text-primary rounded text-xs">
-                        {mockGig.seller.level}
+                        Verified Seller
                       </span>
                     </div>
                   </div>
@@ -195,69 +237,46 @@ export default function GigDetail() {
             <div className="bg-card rounded-xl p-6 border border-border">
               <h2 className="text-xl font-bold mb-4">About This Gig</h2>
               <div className="prose prose-invert max-w-none">
-                {mockGig.description.split('\n\n').map((paragraph, i) => (
-                  <p key={i} className="mb-4 text-muted-foreground leading-relaxed">
-                    {paragraph}
-                  </p>
-                ))}
+                <p className="mb-4 text-muted-foreground leading-relaxed">
+                  {mockGig.description}
+                </p>
               </div>
             </div>
 
-            {/* FAQs */}
-            <div className="bg-card rounded-xl p-6 border border-border">
-              <h2 className="text-xl font-bold mb-4">Frequently Asked Questions</h2>
-              <div className="space-y-4">
-                {mockGig.faqs.map((faq, i) => (
-                  <div key={i} className="border-b border-border pb-4 last:border-b-0">
-                    <h3 className="font-semibold mb-2">{faq.question}</h3>
-                    <p className="text-muted-foreground">{faq.answer}</p>
-                  </div>
-                ))}
-              </div>
-            </div>
+
           </div>
 
           {/* Right Column - Pricing and Actions */}
           <div className="space-y-6">
-            {/* Package Selection */}
+            {/* Pricing */}
             <div className="bg-card rounded-xl border border-border overflow-hidden sticky top-6">
-              <div className="flex border-b border-border">
-                {mockGig.packages.map((pkg, i) => (
-                  <button
-                    key={i}
-                    onClick={() => setSelectedPackage(i)}
-                    className={`flex-1 py-3 px-4 text-sm font-medium ${
-                      selectedPackage === i 
-                        ? 'bg-primary text-primary-foreground' 
-                        : 'bg-muted text-muted-foreground hover:bg-accent'
-                    }`}
-                  >
-                    {pkg.name}
-                  </button>
-                ))}
-              </div>
-
               <div className="p-6">
                 <div className="mb-4">
-                  <div className="text-2xl font-bold">${mockGig.packages[selectedPackage].price}</div>
+                  <div className="text-2xl font-bold">KES {mockGig.price?.toLocaleString()}</div>
                   <div className="text-sm text-muted-foreground flex items-center gap-2">
                     <Clock className="w-4 h-4" />
-                    {mockGig.packages[selectedPackage].deliveryTime} days delivery
+                    {mockGig.deliveryTime || 3} days delivery
                   </div>
                 </div>
 
                 <div className="space-y-3 mb-6">
-                  {mockGig.packages[selectedPackage].features.map((feature, i) => (
-                    <div key={i} className="flex items-center gap-2 text-sm">
-                      <CheckCircle className="w-4 h-4 text-green-500" />
-                      <span>{feature}</span>
-                    </div>
-                  ))}
+                  <div className="flex items-center gap-2 text-sm">
+                    <CheckCircle className="w-4 h-4 text-green-500" />
+                    <span>Professional service</span>
+                  </div>
+                  <div className="flex items-center gap-2 text-sm">
+                    <CheckCircle className="w-4 h-4 text-green-500" />
+                    <span>Quality guaranteed</span>
+                  </div>
+                  <div className="flex items-center gap-2 text-sm">
+                    <CheckCircle className="w-4 h-4 text-green-500" />
+                    <span>Fast delivery</span>
+                  </div>
                 </div>
 
                 <div className="space-y-3">
                   <button className="w-full py-3 bg-primary text-primary-foreground rounded-lg font-semibold hover:bg-primary/90">
-                    Continue (${mockGig.packages[selectedPackage].price})
+                    Order Now (KES {mockGig.price?.toLocaleString()})
                   </button>
                   
                   <div className="flex gap-2">
@@ -282,14 +301,12 @@ export default function GigDetail() {
             {/* Seller Info Card */}
             <div className="bg-card rounded-xl p-6 border border-border">
               <div className="flex items-center gap-3 mb-4">
-                <img 
-                  src={mockGig.seller.avatar} 
-                  alt={mockGig.seller.name}
-                  className="w-16 h-16 rounded-full"
-                />
+                <div className="w-16 h-16 rounded-full bg-blue-600 flex items-center justify-center text-white font-bold text-xl">
+                  {mockGig.users?.name?.[0] || 'U'}
+                </div>
                 <div>
-                  <div className="font-bold text-lg">{mockGig.seller.name}</div>
-                  <div className="text-sm text-muted-foreground">{mockGig.seller.level}</div>
+                  <div className="font-bold text-lg">{mockGig.users?.name || 'Seller'}</div>
+                  <div className="text-sm text-muted-foreground">Verified Seller</div>
                 </div>
               </div>
 
@@ -298,23 +315,12 @@ export default function GigDetail() {
                   <div className="text-muted-foreground">Rating</div>
                   <div className="flex items-center gap-1">
                     <Star className="w-4 h-4 fill-yellow-400 text-yellow-400" />
-                    <span className="font-semibold">{mockGig.seller.rating}</span>
+                    <span className="font-semibold">{mockGig.rating || 5.0}</span>
                   </div>
                 </div>
                 <div>
-                  <div className="text-muted-foreground">Response time</div>
-                  <div className="font-semibold">{mockGig.seller.responseTime}</div>
-                </div>
-              </div>
-
-              <div className="space-y-2 mb-4">
-                <div className="text-sm text-muted-foreground">Languages</div>
-                <div className="flex gap-2">
-                  {mockGig.seller.languages.map((lang, i) => (
-                    <span key={i} className="px-2 py-1 bg-muted rounded text-xs">
-                      {lang}
-                    </span>
-                  ))}
+                  <div className="text-muted-foreground">Category</div>
+                  <div className="font-semibold">{mockGig.category}</div>
                 </div>
               </div>
 
@@ -324,6 +330,15 @@ export default function GigDetail() {
               </button>
             </div>
           </div>
+        </div>
+
+        {/* Reviews Section */}
+        <div className="mt-12">
+          <ReviewSectionComplete
+            type="gig"
+            targetId={params.id as string}
+            canReview={!!session}
+          />
         </div>
       </div>
 
@@ -342,12 +357,12 @@ export default function GigDetail() {
             onClick={(e) => e.stopPropagation()}
           >
             <img 
-              src={mockGig.images[selectedImage]} 
+              src={mockGig.images?.[selectedImage] || '/placeholder.png'} 
               alt={mockGig.title}
               className="max-w-full max-h-full object-contain rounded-lg"
             />
             <div className="flex justify-center gap-2 mt-4">
-              {mockGig.images.map((_, i) => (
+              {mockGig.images?.map((_, i) => (
                 <button
                   key={i}
                   onClick={() => setSelectedImage(i)}

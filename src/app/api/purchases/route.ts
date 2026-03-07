@@ -1,0 +1,32 @@
+import { NextRequest, NextResponse } from 'next/server'
+import { prisma } from '../../../lib/prisma'
+import { getServerSession } from 'next-auth'
+import { authOptions } from '@/lib/auth'
+
+export async function GET(request: NextRequest) {
+  try {
+    const session = await getServerSession(authOptions)
+    
+    if (!session?.user?.id) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
+    const { searchParams } = new URL(request.url)
+    const userId = searchParams.get('userId') || session.user.id
+    
+    // Fetch user's orders/purchases
+    const purchases = await prisma.orders.findMany({
+      where: { 
+        buyerId: userId,
+        status: { in: ['COMPLETED', 'DELIVERED', 'PAID'] }
+      },
+      orderBy: { createdAt: 'desc' },
+      take: 50
+    })
+
+    return NextResponse.json(purchases)
+  } catch (error) {
+    console.error('Purchases fetch error:', error)
+    return NextResponse.json({ error: 'Failed to fetch purchases' }, { status: 500 })
+  }
+}
