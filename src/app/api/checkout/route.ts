@@ -39,8 +39,17 @@ export async function POST(request: NextRequest) {
       select: { id: true, stock: true, price: true, title: true }
     })
 
+    // Validate stock for real products only (skip mock products)
     for (const item of items) {
-      const product = products.find(p => p.id === (item.id || item.productId))
+      const productId = item.id || item.productId
+      const product = products.find(p => p.id === productId)
+      
+      // Skip validation for mock products (IDs starting with 'mock-')
+      if (productId.startsWith('mock-')) {
+        console.log(`Skipping stock validation for mock product: ${productId}`)
+        continue
+      }
+      
       if (!product) {
         return NextResponse.json({ 
           error: `Product ${item.title} not found` 
@@ -69,10 +78,14 @@ export async function POST(request: NextRequest) {
       })
 
       for (const item of items) {
-        await tx.products.update({
-          where: { id: item.id || item.productId },
-          data: { stock: { decrement: item.quantity } }
-        })
+        const productId = item.id || item.productId
+        // Skip stock updates for mock products
+        if (!productId.startsWith('mock-')) {
+          await tx.products.update({
+            where: { id: productId },
+            data: { stock: { decrement: item.quantity } }
+          })
+        }
       }
 
       await tx.cart.deleteMany({

@@ -31,6 +31,7 @@ export default function CheckoutPage() {
       return
     }
     
+    // Only load cart once on mount
     const loadCart = async () => {
       setIsLoadingCart(true)
       console.log('Loading cart on checkout page...')
@@ -40,7 +41,6 @@ export default function CheckoutPage() {
       } catch (error) {
         console.error('Failed to load cart:', error)
       } finally {
-        // Add delay to ensure cart state updates
         setTimeout(() => {
           setIsLoadingCart(false)
         }, 500)
@@ -48,7 +48,7 @@ export default function CheckoutPage() {
     }
     
     loadCart()
-  }, [session, refreshCart])
+  }, [session, router]) // Removed refreshCart from dependencies to prevent infinite loop
 
   useEffect(() => {
     const kenyanPhoneRegex = /^(254|0)[17]\d{8}$/
@@ -105,7 +105,7 @@ export default function CheckoutPage() {
           body: JSON.stringify({
             orderId: orderData.order.id,
             amount: Math.round(total),
-            sellerId: orderData.order.sellerId || session.user.id
+            sellerId: orderData.order.sellerId || session?.user?.id
           })
         })
 
@@ -154,7 +154,16 @@ export default function CheckoutPage() {
     )
   }
 
-  console.log('Rendering checkout with cart:', cart)
+  if (!session || isLoadingCart) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-emerald-500 mx-auto mb-4"></div>
+          <p className="text-muted-foreground">Loading your cart...</p>
+        </div>
+      </div>
+    )
+  }
 
   if (cart.length === 0) {
     return (
@@ -257,7 +266,7 @@ export default function CheckoutPage() {
                       </div>
                       <div className="flex-1">
                         <h3 className="font-semibold">{item.title}</h3>
-                        <p className="text-sm text-muted-foreground">{item.category || 'Digital Product'}</p>
+                        <p className="text-sm text-muted-foreground">{item.seller || 'Digital Product'}</p>
                         <p className="text-lg font-bold mt-1 text-emerald-600">KES {item.price.toLocaleString()}</p>
                       </div>
                       <div className="flex flex-col items-end gap-2">

@@ -1,7 +1,6 @@
 "use client"
 import React, { useState } from "react";
 import {
-  Home,
   Briefcase,
   ShoppingCart,
   Package,
@@ -77,7 +76,7 @@ export const DashboardSidebar: React.FC<SidebarProps> = ({
     <nav
       className={`sticky top-0 h-screen shrink-0 border-r transition-all duration-300 ease-in-out z-40 ${
         open ? 'w-64' : 'w-20'
-      } border-slate-200 dark:border-slate-800 bg-white/50 dark:bg-[#0f172a]/50 backdrop-blur-xl p-4 flex flex-col`}
+      } border-slate-200 dark:border-slate-700/50 bg-gradient-to-b from-white via-slate-50 to-slate-100 dark:from-slate-900 dark:via-slate-900 dark:to-slate-950 shadow-xl shadow-slate-200/50 dark:shadow-black/20 p-4 flex flex-col`}
     >
       <TitleSection open={open} userName={userName} userPlan={userPlan} />
 
@@ -94,10 +93,10 @@ export const DashboardSidebar: React.FC<SidebarProps> = ({
         ))}
       </div>
 
-      <div className="mt-auto pt-4 border-t border-slate-200 dark:border-slate-800">
+      <div className="mt-auto pt-4 border-t border-slate-200 dark:border-slate-700/50">
         {open && (
           <div className="mb-4">
-            <div className="px-3 py-2 text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest">
+            <div className="px-3 py-2 text-[10px] font-bold text-slate-500 dark:text-slate-500 uppercase tracking-widest">
               Account
             </div>
             <Option
@@ -128,8 +127,8 @@ const Option = ({ Icon, title, href, selected, open }: any) => {
       <button
         className={`group relative flex h-12 w-full items-center rounded-xl transition-all duration-300 ${
           selected 
-            ? "bg-blue-600 text-white shadow-lg shadow-blue-600/25" 
-            : "text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800/50 hover:text-slate-900 dark:hover:text-slate-100"
+            ? "bg-gradient-to-r from-blue-600 to-blue-500 text-white shadow-lg shadow-blue-500/30" 
+            : "text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800/60 hover:text-slate-900 dark:hover:text-white"
         }`}
       >
         <div className="grid h-full w-12 place-content-center shrink-0">
@@ -145,7 +144,7 @@ const Option = ({ Icon, title, href, selected, open }: any) => {
         </span>
 
         {selected && open && (
-          <div className="absolute right-3 h-1.5 w-1.5 rounded-full bg-white animate-pulse"></div>
+          <div className="absolute right-3 h-1.5 w-1.5 rounded-full bg-orange-400 animate-pulse"></div>
         )}
       </button>
     </Link>
@@ -161,7 +160,7 @@ const TitleSection = ({ open, userName, userPlan }: any) => {
           <span className="block text-sm font-bold text-slate-900 dark:text-white leading-tight truncate">
             {userName}
           </span>
-          <span className="block text-[10px] font-medium text-blue-600 dark:text-orange-400 uppercase tracking-wider">
+          <span className="block text-[10px] font-medium text-orange-500 dark:text-orange-400 uppercase tracking-wider">
             {userPlan}
           </span>
         </div>
@@ -189,7 +188,7 @@ const ToggleClose = ({ open, setOpen }: any) => {
   return (
     <button
       onClick={() => setOpen(!open)}
-      className="w-full flex items-center h-12 rounded-xl transition-all duration-300 text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800/50"
+      className="w-full flex items-center h-12 rounded-xl transition-all duration-300 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800/60"
     >
       <div className="grid size-12 place-content-center shrink-0">
         <ChevronsRight

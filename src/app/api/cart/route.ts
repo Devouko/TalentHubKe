@@ -42,18 +42,27 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json()
+    console.log('Cart POST request body:', body)
+    
     const validatedData = addToCartSchema.parse(body)
+    console.log('Validated data:', validatedData)
     
     const product = await prisma.products.findUnique({
       where: { id: validatedData.productId },
-      select: { id: true, stock: true, title: true, price: true }
+      select: { id: true, stock: true, title: true, price: true, category: true }
     })
+    
+    console.log('Product found:', product)
     
     if (!product) {
       return NextResponse.json({ error: 'Product not found' }, { status: 404 })
     }
     
-    if (product.stock < validatedData.quantity) {
+    // For digital products (Accounts, fashion, etc.), skip stock check
+    // Only check stock for physical products with actual inventory
+    const isDigitalProduct = ['Accounts', 'fashion', 'Digital Products'].includes(product.category || '')
+    
+    if (!isDigitalProduct && product.stock !== null && product.stock !== undefined && product.stock < validatedData.quantity) {
       return NextResponse.json({ error: 'Insufficient stock' }, { status: 400 })
     }
 
@@ -87,6 +96,8 @@ export async function POST(request: NextRequest) {
       }
     })
 
+    console.log('Cart item created:', cartItem)
+
     return NextResponse.json({ 
       success: true,
       cartItem,
@@ -94,6 +105,7 @@ export async function POST(request: NextRequest) {
     })
   } catch (error) {
     if (error instanceof z.ZodError) {
+      console.error('Validation error:', error.errors)
       return NextResponse.json({ 
         error: 'Validation failed',
         details: error.errors
@@ -101,9 +113,10 @@ export async function POST(request: NextRequest) {
     }
     
     console.error('Cart add error:', error)
+    console.error('Error stack:', error instanceof Error ? error.stack : 'No stack trace')
     return NextResponse.json({ 
       error: 'Failed to add to cart',
-      details: process.env.NODE_ENV === 'development' ? error : undefined
+      details: process.env.NODE_ENV === 'development' ? (error instanceof Error ? error.message : String(error)) : undefined
     }, { status: 500 })
   }
 }

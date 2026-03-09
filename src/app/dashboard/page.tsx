@@ -2,9 +2,12 @@
 
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
-import { TrendingUp, DollarSign, ShoppingBag, Users, Package, ArrowUpRight, Clock, Plus, Store } from 'lucide-react'
+import { TrendingUp, DollarSign, ShoppingBag, Package, ArrowUpRight, Plus, Store } from 'lucide-react'
 import { useSession } from 'next-auth/react'
+import { useRouter } from 'next/navigation'
 import Image from 'next/image'
+import { useCart } from '../context/CartContext'
+import { toast } from 'sonner'
 
 interface Stats {
   totalRevenue: number
@@ -37,62 +40,150 @@ export default function DashboardPage() {
   const [recentOrders, setRecentOrders] = useState<RecentOrder[]>([])
   const [allProducts, setAllProducts] = useState<Product[]>([])
   const [loading, setLoading] = useState(true)
+  const [addingToCart, setAddingToCart] = useState(false)
   const { data: session } = useSession()
+  const router = useRouter()
+  const { addToCart } = useCart()
 
   useEffect(() => {
     fetchDashboardData()
   }, [])
 
   const fetchDashboardData = async () => {
+    setLoading(true)
     try {
-      const [productsRes, ordersRes] = await Promise.all([
-        fetch('/api/products'),
-        fetch('/api/orders')
-      ])
-      
-      if (!productsRes.ok || !ordersRes.ok) {
-        throw new Error('Failed to fetch data')
-      }
-      
-      const productsData = await productsRes.json()
-      const ordersData = await ordersRes.json()
-      
-      const orders = Array.isArray(ordersData) ? ordersData : (ordersData.orders || [])
-      const products = Array.isArray(productsData) ? productsData : (productsData.products || [])
-      
-      const totalRevenue = orders.reduce((sum: number, o: any) => sum + (o.totalAmount || 0), 0)
-      
-      setStats({
-        totalRevenue,
-        totalOrders: orders.length,
-        totalProducts: products.length,
-        revenueChange: 0,
-        ordersChange: 0
+      // Fetch products from database
+      const productsRes = await fetch('/api/products', {
+        cache: 'no-store',
+        headers: { 'Cache-Control': 'no-cache' }
       })
       
-      setRecentOrders(orders.slice(0, 5).map((o: any) => ({
-        id: o.id,
-        customerName: o.customerName || 'Customer',
-        amount: o.totalAmount || 0,
-        status: (o.status || 'pending').toLowerCase(),
-        createdAt: o.createdAt
-      })))
+      if (productsRes.ok) {
+        const productsData = await productsRes.json()
+        const products = Array.isArray(productsData) ? productsData : (productsData.products || [])
+        setAllProducts(products)
+        setStats(prev => ({ ...prev, totalProducts: products.length }))
+      } else {
+        console.error('Failed to fetch products:', productsRes.status)
+        setAllProducts([])
+      }
       
-      setAllProducts(products)
+      // Fetch orders in background for stats
+      fetch('/api/orders')
+        .then(res => res.ok ? res.json() : [])
+        .then(ordersData => {
+          const orders = Array.isArray(ordersData) ? ordersData : (ordersData.orders || [])
+          const totalRevenue = orders.reduce((sum: number, o: any) => sum + (o.totalAmount || 0), 0)
+          
+          setStats(prev => ({
+            ...prev,
+            totalRevenue,
+            totalOrders: orders.length,
+            revenueChange: 0,
+            ordersChange: 0
+          }))
+          
+          setRecentOrders(orders.slice(0, 5).map((o: any) => ({
+            id: o.id,
+            customerName: o.customerName || 'Customer',
+            amount: o.totalAmount || 0,
+            status: (o.status || 'pending').toLowerCase(),
+            createdAt: o.createdAt
+          })))
+        })
+        .catch(err => console.error('Failed to fetch orders:', err))
     } catch (error) {
       console.error('Failed to fetch dashboard data:', error)
-      setStats({ totalRevenue: 0, totalOrders: 0, totalProducts: 0, revenueChange: 0, ordersChange: 0 })
-      setRecentOrders([])
       setAllProducts([])
     } finally {
       setLoading(false)
     }
   }
 
+  const handleBuyNow = async (product: Product) => {
+    if (!session) {
+      toast.error('Please sign in to purchase')
+      router.push('/auth')
+      return
+    }
+
+    if (addingToCart) return
+
+    setAddingToCart(true)
+
+    try {
+      const cartItem = {
+        id: product.id,
+        gigId: product.id,
+        title: product.title,
+        price: product.price,
+        thumbnail: product.images?.[0] || '',
+        quantity: 1,
+        seller: 'Digital Store',
+        deliveryTime: 0,
+        tier: 'basic' as const
+      }
+      
+      await addToCart(cartItem)
+
+      toast.success('Added to cart!', {
+        description: 'Redirecting to checkout...',
+        duration: 1500
+      })
+
+      setTimeout(() => {
+        setAddingToCart(false)
+        router.push('/checkout')
+      }, 1000)
+    } catch (error) {
+      console.error('Error adding to cart:', error)
+      toast.error('Failed to add to cart')
+      setAddingToCart(false)
+    }
+  }
+
   if (loading) {
     return (
-      <div className="flex items-center justify-center py-24">
-        <div className="animate-spin rounded-full h-12 w-12 border-4 border-slate-100 border-t-blue-600"></div>
+      <div className="space-y-10 animate-in fade-in duration-500">
+        <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
+          <div className="space-y-3">
+            <div className="h-10 w-80 bg-slate-200 dark:bg-slate-800 rounded-lg animate-pulse"></div>
+            <div className="h-5 w-96 bg-slate-200 dark:bg-slate-800 rounded animate-pulse"></div>
+          </div>
+          <div className="flex items-center gap-3">
+            {[1, 2, 3].map((i) => (
+              <div key={i} className="h-10 w-24 bg-slate-200 dark:bg-slate-800 rounded-xl animate-pulse"></div>
+            ))}
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {[1, 2, 3].map((i) => (
+            <div key={i} className="p-8 rounded-3xl bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800">
+              <div className="flex items-center justify-between mb-6">
+                <div className="w-12 h-12 bg-slate-200 dark:bg-slate-800 rounded-2xl animate-pulse"></div>
+              </div>
+              <div className="h-3 w-24 bg-slate-200 dark:bg-slate-800 rounded animate-pulse mb-3"></div>
+              <div className="h-8 w-32 bg-slate-200 dark:bg-slate-800 rounded animate-pulse"></div>
+            </div>
+          ))}
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {[1, 2, 3, 4, 5, 6].map((i) => (
+            <div key={i} className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-100 dark:border-slate-800 overflow-hidden">
+              <div className="aspect-video bg-slate-200 dark:bg-slate-800 animate-pulse"></div>
+              <div className="p-6 space-y-3">
+                <div className="h-5 w-3/4 bg-slate-200 dark:bg-slate-800 rounded animate-pulse"></div>
+                <div className="h-4 w-full bg-slate-200 dark:bg-slate-800 rounded animate-pulse"></div>
+                <div className="flex items-center justify-between">
+                  <div className="h-8 w-24 bg-slate-200 dark:bg-slate-800 rounded animate-pulse"></div>
+                  <div className="h-10 w-28 bg-slate-200 dark:bg-slate-800 rounded-xl animate-pulse"></div>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
       </div>
     )
   }
@@ -132,7 +223,7 @@ export default function DashboardPage() {
           { label: 'Total Revenue', value: `KES ${stats.totalRevenue.toLocaleString()}`, change: 0, icon: DollarSign, color: 'emerald' },
           { label: 'Total Orders', value: stats.totalOrders, change: 0, icon: ShoppingBag, color: 'blue' },
           { label: 'Total Products', value: stats.totalProducts, change: 0, icon: Package, color: 'purple' },
-        ].map((item, i) => (
+        ].map((item) => (
           <div key={item.label} className="group p-8 rounded-3xl bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 shadow-sm hover:shadow-2xl hover:shadow-slate-200/50 dark:hover:shadow-black/50 transition-all duration-500">
             <div className="flex items-center justify-between mb-6">
               <div className="p-3 rounded-2xl bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white group-hover:bg-blue-600 group-hover:text-white transition-all duration-300">
@@ -237,7 +328,14 @@ export default function DashboardPage() {
                 <div key={product.id} className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-100 dark:border-slate-800 overflow-hidden hover:shadow-xl transition-all">
                   <div className="aspect-video bg-slate-100 dark:bg-slate-800 relative">
                     {product.images?.[0] ? (
-                      <Image src={product.images[0]} alt={product.title} fill className="object-cover" />
+                      <Image 
+                        src={product.images[0]} 
+                        alt={product.title} 
+                        fill 
+                        className="object-cover" 
+                        loading="lazy"
+                        sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+                      />
                     ) : (
                       <div className="w-full h-full flex items-center justify-center">
                         <Package className="w-12 h-12 text-slate-300" />
@@ -252,9 +350,28 @@ export default function DashboardPage() {
                     <p className="text-sm text-slate-500 dark:text-slate-400 mb-4 line-clamp-2">{product.description}</p>
                     <div className="flex items-center justify-between">
                       <span className="text-2xl font-black text-blue-600">KES {product.price.toLocaleString()}</span>
-                      <button className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-sm font-semibold transition-all flex items-center gap-2">
-                        <ShoppingBag className="w-4 h-4" />
-                        Buy Now
+                      <button 
+                        onClick={(e) => {
+                          e.preventDefault()
+                          e.stopPropagation()
+                          console.log('Buy Now clicked for product:', product.id, product.title)
+                          handleBuyNow(product)
+                        }}
+                        disabled={addingToCart}
+                        className="px-4 py-2 bg-blue-600 hover:bg-blue-700 active:bg-blue-800 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-xl text-sm font-semibold transition-all flex items-center gap-2 hover:shadow-lg hover:-translate-y-0.5 active:translate-y-0"
+                        type="button"
+                      >
+                        {addingToCart ? (
+                          <>
+                            <div className="animate-spin rounded-full h-3 w-3 border-2 border-white border-t-transparent"></div>
+                            Adding...
+                          </>
+                        ) : (
+                          <>
+                            <ShoppingBag className="w-4 h-4" />
+                            Buy Now
+                          </>
+                        )}
                       </button>
                     </div>
                   </div>

@@ -7,7 +7,6 @@ const initiateSchema = z.object({
   sellerId: z.string(),
   orderId: z.string(),
   amount: z.number().positive(),
-  currency: z.string().optional(),
   productId: z.string().optional(),
   items: z.array(z.object({
     productId: z.string(),

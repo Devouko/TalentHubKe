@@ -22,7 +22,6 @@ interface InitiateEscrowParams {
   sellerId: string
   orderId: string
   amount: number
-  currency?: string
   productId?: string
   items?: any[]
   metadata?: Record<string, any>
@@ -64,7 +63,7 @@ export class EscrowService {
 
   // STEP 1: Buyer initiates escrow
   async initiate(params: InitiateEscrowParams) {
-    const { buyerId, sellerId, orderId, amount, currency = 'KES', productId, items = [], metadata = {} } = params
+    const { buyerId, sellerId, orderId, amount, productId, items = [], metadata = {} } = params
 
     const escrow = await prisma.escrow_transactions.create({
       data: {
@@ -74,7 +73,6 @@ export class EscrowService {
         orderId,
         productId,
         amount,
-        currency,
         platformFeePercent: PLATFORM_FEE,
         status: EscrowStatus.INITIATED,
         metadata,
@@ -99,7 +97,7 @@ export class EscrowService {
       })
     }
 
-    await this.logEvent(escrow.id, 'INITIATED', buyerId, { amount, currency })
+    await this.logEvent(escrow.id, 'INITIATED', buyerId, { amount })
     return escrow
   }
 

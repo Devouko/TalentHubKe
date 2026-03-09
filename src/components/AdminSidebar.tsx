@@ -19,59 +19,59 @@ export default function AdminSidebar() {
 
   return (
     <>
-      <div className={`fixed left-0 top-0 h-full bg-gray-900 border-r border-gray-700 transition-all z-50 ${isOpen ? 'w-64' : 'w-16'}`}>
+      <div className={`fixed left-0 top-0 h-full bg-gradient-to-b from-slate-900 via-slate-900 to-slate-950 border-r border-slate-700/50 shadow-2xl shadow-black/20 transition-all z-50 ${isOpen ? 'w-64' : 'w-16'}`}>
         <div className="p-4">
           <div className="flex items-center justify-between mb-8">
             <h2 className={`font-bold text-white ${isOpen ? 'block' : 'hidden'}`}>Admin Panel</h2>
-            <button onClick={() => setIsOpen(!isOpen)} className="text-gray-400 hover:text-white">
+            <button onClick={() => setIsOpen(!isOpen)} className="text-slate-400 hover:text-white transition-colors">
               {isOpen ? <X className="w-5 h-5" /> : <Settings className="w-5 h-5" />}
             </button>
           </div>
 
           <nav className="space-y-2">
-            <Link href="/admin" className="flex items-center gap-3 p-3 rounded-lg hover:bg-gray-800 text-gray-300 hover:text-white">
+            <Link href="/admin" className="flex items-center gap-3 p-3 rounded-lg hover:bg-slate-800/60 text-slate-400 hover:text-white transition-all">
               <BarChart3 className="w-5 h-5" />
               {isOpen && <span>Dashboard</span>}
             </Link>
             
-            <Link href="/admin/users" className="flex items-center gap-3 p-3 rounded-lg hover:bg-gray-800 text-gray-300 hover:text-white">
+            <Link href="/admin/users" className="flex items-center gap-3 p-3 rounded-lg hover:bg-slate-800/60 text-slate-400 hover:text-white transition-all">
               <Users className="w-5 h-5" />
               {isOpen && <span>Users</span>}
             </Link>
 
-            <Link href="/admin/products" className="flex items-center gap-3 p-3 rounded-lg hover:bg-gray-800 text-gray-300 hover:text-white">
+            <Link href="/admin/products" className="flex items-center gap-3 p-3 rounded-lg hover:bg-slate-800/60 text-slate-400 hover:text-white transition-all">
               <Package className="w-5 h-5" />
               {isOpen && <span>Products</span>}
             </Link>
 
             <button 
               onClick={() => setShowColorPicker(!showColorPicker)}
-              className="w-full flex items-center gap-3 p-3 rounded-lg hover:bg-gray-800 text-gray-300 hover:text-white"
+              className="w-full flex items-center gap-3 p-3 rounded-lg hover:bg-slate-800/60 text-slate-400 hover:text-white transition-all"
             >
               <Palette className="w-5 h-5" />
               {isOpen && <span>Theme Colors</span>}
             </button>
 
-            <Link href="/admin/messages" className="flex items-center gap-3 p-3 rounded-lg hover:bg-gray-800 text-gray-300 hover:text-white">
+            <Link href="/admin/messages" className="flex items-center gap-3 p-3 rounded-lg hover:bg-slate-800/60 text-slate-400 hover:text-white transition-all">
               <MessageSquare className="w-5 h-5" />
               {isOpen && <span>Messages</span>}
             </Link>
 
-            <Link href="/admin/dynamic-settings" className="flex items-center gap-3 p-3 rounded-lg hover:bg-gray-800 text-gray-300 hover:text-white">
+            <Link href="/admin/dynamic-settings" className="flex items-center gap-3 p-3 rounded-lg hover:bg-slate-800/60 text-slate-400 hover:text-white transition-all">
               <Sliders className="w-5 h-5" />
               {isOpen && <span>Dynamic Settings</span>}
             </Link>
           </nav>
 
           {showColorPicker && isOpen && (
-            <div className="mt-4 p-4 bg-gray-800 rounded-lg">
-              <h3 className="text-white text-sm mb-3">System Colors</h3>
+            <div className="mt-4 p-4 bg-slate-800/80 rounded-lg border border-slate-700/50">
+              <h3 className="text-white text-sm mb-3 font-semibold">System Colors</h3>
               <div className="grid grid-cols-4 gap-2">
                 {['#8b5cf6', '#ec4899', '#10b981', '#f59e0b', '#ef4444', '#3b82f6', '#06b6d4', '#84cc16'].map(color => (
                   <button
                     key={color}
                     onClick={() => handleColorChange(color)}
-                    className="w-8 h-8 rounded border-2 border-gray-600 hover:border-white"
+                    className="w-8 h-8 rounded border-2 border-slate-600 hover:border-white transition-all hover:scale-110"
                     style={{ backgroundColor: color }}
                   />
                 ))}

@@ -2,16 +2,25 @@
 
 import { useState, useEffect } from 'react'
 import { signIn, useSession } from 'next-auth/react'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 
 export default function AuthPage() {
-  const [isSignUp, setIsSignUp] = useState(false)
+  const searchParams = useSearchParams()
+  const mode = searchParams.get('mode')
+  const [isSignUp, setIsSignUp] = useState(mode === 'signup')
   const [formData, setFormData] = useState({ name: '', email: '', password: '' })
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const router = useRouter()
   const { data: session } = useSession()
+
+  useEffect(() => {
+    // Update signup mode based on URL parameter
+    if (mode === 'signup') {
+      setIsSignUp(true)
+    }
+  }, [mode])
 
   useEffect(() => {
     if (session) {

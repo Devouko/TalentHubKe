@@ -44,7 +44,6 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
       })
       
       if (!response.ok) {
-        console.error('Cart fetch failed:', response.status)
         setCart([])
         return
       }
@@ -89,6 +88,8 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
     }
     
     try {
+      console.log('Adding to cart:', { productId: item.id, quantity: item.quantity || 1 })
+      
       const response = await fetch('/api/cart', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -99,9 +100,12 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
       })
       
       const data = await response.json()
+      console.log('Cart API response:', data)
       
       if (!response.ok) {
-        throw new Error(data.error || 'Failed to add to cart')
+        const errorMsg = data.error || 'Failed to add to cart'
+        console.error('Cart API error:', errorMsg, data.details)
+        throw new Error(errorMsg)
       }
       
       if (data.success) {

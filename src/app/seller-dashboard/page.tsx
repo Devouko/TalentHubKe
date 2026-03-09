@@ -10,10 +10,24 @@ export default function SellerDashboard() {
   const { data: session } = useSession()
   const router = useRouter()
   const [products, setProducts] = useState<any[]>([])
+  const [orders, setOrders] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [checkoutProduct, setCheckoutProduct] = useState<any>(null)
   const [phoneNumber, setPhoneNumber] = useState('')
+  const [showCreateProduct, setShowCreateProduct] = useState(false)
+  const [showOrders, setShowOrders] = useState(false)
   const [processingPayment, setProcessingPayment] = useState(false)
+
+  const fetchOrders = async () => {
+    try {
+      const response = await fetch('/api/orders')
+      const data = await response.json()
+      setOrders(Array.isArray(data) ? data : (data.orders || []))
+    } catch (error) {
+      console.error('Error fetching orders:', error)
+      setOrders([])
+    }
+  }
 
   useEffect(() => {
     fetchProducts()
@@ -272,7 +286,72 @@ export default function SellerDashboard() {
             ))}
           </div>
         )}
+
+        <div className="flex gap-4">
+          <button
+            onClick={() => { fetchOrders(); setShowOrders(true); }}
+            className="px-6 py-3 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-xl font-semibold transition-all"
+          >
+            View Orders
+          </button>
+        </div>
       </div>
+
+      {showCreateProduct && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white dark:bg-slate-800 rounded-2xl p-6 max-w-md w-full">
+            <h3 className="text-xl font-bold mb-4">Create Product</h3>
+            <p className="text-slate-500 mb-6">Product creation form would go here</p>
+            <div className="flex gap-3">
+              <button
+                onClick={() => setShowCreateProduct(false)}
+                className="flex-1 px-4 py-2 bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-xl"
+              >
+                Cancel
+              </button>
+              <button className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-xl">
+                Create
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showOrders && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white dark:bg-slate-800 rounded-2xl p-6 max-w-2xl w-full max-h-[80vh] overflow-y-auto">
+            <div className="flex items-center justify-between mb-6">
+              <h3 className="text-xl font-bold">My Orders</h3>
+              <button
+                onClick={() => setShowOrders(false)}
+                className="text-slate-400 hover:text-slate-600"
+              >
+                ✕
+              </button>
+            </div>
+            {orders.length === 0 ? (
+              <p className="text-slate-500 text-center py-8">No orders found</p>
+            ) : (
+              <div className="space-y-4">
+                {orders.map(order => (
+                  <div key={order.id} className="p-4 border border-slate-200 dark:border-slate-700 rounded-xl">
+                    <div className="flex justify-between items-start">
+                      <div>
+                        <p className="font-semibold">Order #{order.id.slice(0, 8)}</p>
+                        <p className="text-sm text-slate-500">{new Date(order.createdAt).toLocaleDateString()}</p>
+                      </div>
+                      <div className="text-right">
+                        <p className="font-bold">KES {order.totalAmount?.toLocaleString()}</p>
+                        <span className="text-xs px-2 py-1 bg-blue-100 text-blue-600 rounded-full">{order.status}</span>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
     </DashboardLayout>
   )
 }
